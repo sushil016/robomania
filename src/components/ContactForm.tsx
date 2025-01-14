@@ -2,94 +2,99 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Send, Mail, User, MessageSquare } from 'lucide-react'
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    message: '',
+    message: ''
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }))
-  }
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission logic here
-    console.log('Form submitted:', formData)
-    // Reset form after submission
-    setFormData({ name: '', email: '', message: '' })
+    // Handle form submission
   }
 
   return (
-    <section className="py-16 bg-gray-900">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold font-orbitron text-neon-green mb-8 text-center">Contact Us</h2>
-        <motion.form
+    <section className="relative py-24 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black" />
+      
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          onSubmit={handleSubmit}
-          className="max-w-lg mx-auto"
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
         >
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-              Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 text-gray-900 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-neon-green"
-            />
+          <h2 className="text-4xl font-bold font-orbitron mb-4">
+            <span className="bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+              Contact Us
+            </span>
+          </h2>
+          <p className="text-white/60 max-w-2xl mx-auto">
+            Have questions? We'd love to hear from you.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-2xl mx-auto"
+        >
+          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-2xl border border-white/10">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="flex items-center text-sm font-medium text-white/70 mb-2">
+                  <User className="w-4 h-4 mr-2" />
+                  Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-white transition-all duration-200"
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center text-sm font-medium text-white/70 mb-2">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-white transition-all duration-200"
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center text-sm font-medium text-white/70 mb-2">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Message
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-white transition-all duration-200"
+                  placeholder="Your message..."
+                />
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-lg font-medium flex items-center justify-center group"
+              >
+                <Send className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:translate-x-1" />
+                Send Message
+              </motion.button>
+            </form>
           </div>
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 text-gray-900 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-neon-green"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
-              Message
-            </label>
-            <textarea
-              id="message"
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              required
-              rows={4}
-              className="w-full px-3 py-2 text-gray-900 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-neon-green"
-            ></textarea>
-          </div>
-          <div className="text-center">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              type="submit"
-              className="bg-neon-green text-black font-bold py-2 px-4 rounded-full hover:bg-electric-blue transition-colors duration-200"
-            >
-              Send Message
-            </motion.button>
-          </div>
-        </motion.form>
+        </motion.div>
       </div>
     </section>
   )

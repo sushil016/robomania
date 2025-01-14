@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Tab } from '@headlessui/react'
+import { Trophy, Clock, Star } from 'lucide-react'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -17,14 +19,6 @@ const scheduleData = [
   { time: '07:00 PM', event: 'Award Ceremony' },
 ]
 
-const scoresData = [
-  { team: 'Team Alpha', score: 85 },
-  { team: 'RoboWarriors', score: 78 },
-  { team: 'Mech Marvels', score: 92 },
-  { team: 'Circuit Breakers', score: 88 },
-  { team: 'Binary Bots', score: 76 },
-]
-
 const leaderboardData = [
   { rank: 1, team: 'Mech Marvels', points: 150 },
   { rank: 2, team: 'Circuit Breakers', points: 135 },
@@ -34,91 +28,118 @@ const leaderboardData = [
 ]
 
 export default function LiveUpdates() {
-  const [categories] = useState({
-    Schedule: scheduleData,
-    Scores: scoresData,
-    Leaderboard: leaderboardData,
-  })
-
   return (
-    <section className="py-16 bg-gray-900">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold font-orbitron text-neon-green mb-8 text-center">Live Updates</h2>
+    <section className="relative py-24 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black" />
+      
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-4xl font-bold font-orbitron mb-4">
+            <span className="bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+              Live Updates
+            </span>
+          </h2>
+          <p className="text-white/60 max-w-2xl mx-auto">
+            Stay updated with the latest event schedules and rankings
+          </p>
+        </motion.div>
+
         <Tab.Group>
-          <Tab.List className="flex space-x-1 rounded-xl bg-gray-800 p-1">
-            {Object.keys(categories).map((category) => (
-              <Tab
-                key={category}
-                className={({ selected }) =>
-                  classNames(
-                    'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                    'ring-white ring-opacity-60 ring-offset-2 ring-offset-neon-green focus:outline-none focus:ring-2',
-                    selected
-                      ? 'bg-neon-green text-black shadow'
-                      : 'text-gray-100 hover:bg-gray-700 hover:text-white'
-                  )
-                }
-              >
-                {category}
-              </Tab>
-            ))}
+          <Tab.List className="flex space-x-4 bg-black/50 backdrop-blur-sm p-2 rounded-xl mb-8">
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  'w-full py-3 px-6 text-sm font-medium rounded-lg transition-all duration-200',
+                  'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-black ring-[#00CED1]',
+                  selected
+                    ? 'bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white shadow-lg'
+                    : 'text-white/60 hover:text-white hover:bg-white/10'
+                )
+              }
+            >
+              <div className="flex items-center justify-center">
+                <Clock className="w-4 h-4 mr-2" />
+                Schedule
+              </div>
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  'w-full py-3 px-6 text-sm font-medium rounded-lg transition-all duration-200',
+                  'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-black ring-[#00CED1]',
+                  selected
+                    ? 'bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white shadow-lg'
+                    : 'text-white/60 hover:text-white hover:bg-white/10'
+                )
+              }
+            >
+              <div className="flex items-center justify-center">
+                <Trophy className="w-4 h-4 mr-2" />
+                Leaderboard
+              </div>
+            </Tab>
           </Tab.List>
-          <Tab.Panels className="mt-2">
-            <Tab.Panel className="rounded-xl bg-gray-800 p-3">
-              <table className="min-w-full">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Event</th>
-                  </tr>
-                </thead>
-                <tbody>
+
+          <Tab.Panels>
+            <Tab.Panel>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="bg-black/50 backdrop-blur-sm rounded-xl p-6"
+              >
+                <div className="space-y-4">
                   {scheduleData.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'}>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.time}</td>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.event}</td>
-                    </tr>
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-gray-900 to-black"
+                    >
+                      <span className="text-[#00CED1] font-mono">{item.time}</span>
+                      <span className="text-white">{item.event}</span>
+                    </motion.div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </motion.div>
             </Tab.Panel>
-            <Tab.Panel className="rounded-xl bg-gray-800 p-3">
-              <table className="min-w-full">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Team</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scoresData.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'}>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.team}</td>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.score}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Tab.Panel>
-            <Tab.Panel className="rounded-xl bg-gray-800 p-3">
-              <table className="min-w-full">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rank</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Team</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Points</th>
-                  </tr>
-                </thead>
-                <tbody>
+
+            <Tab.Panel>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="bg-black/50 backdrop-blur-sm rounded-xl p-6"
+              >
+                <div className="space-y-4">
                   {leaderboardData.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'}>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.rank}</td>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.team}</td>
-                      <td className="px-4 py-2 whitespace-nowrap">{item.points}</td>
-                    </tr>
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-gray-900 to-black"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          {index === 0 && <Trophy className="w-6 h-6 text-yellow-500" />}
+                          {index === 1 && <Star className="w-6 h-6 text-gray-400" />}
+                          {index === 2 && <Star className="w-6 h-6 text-amber-600" />}
+                          {index > 2 && <span className="text-white/60">#{item.rank}</span>}
+                        </div>
+                        <span className="ml-4 text-white font-medium">{item.team}</span>
+                      </div>
+                      <span className="text-[#00CED1] font-mono">{item.points} pts</span>
+                    </motion.div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </motion.div>
             </Tab.Panel>
           </Tab.Panels>
         </Tab.Group>

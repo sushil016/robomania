@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teamName     String  @unique
+  institution  String
+  contactEmail String
+  contactPhone String
+  
+  // Team Leader
+  leaderName  String
+  leaderEmail String
+  leaderPhone String
+
+  // Robot Details
+  robotName        String
+  robotWeight      Float
+  robotDimensions  String
+  weaponType      String
+  
+  // Team Members (excluding leader)
+  members    TeamMember[]
+  
+  // Status
+  status     RegistrationStatus @default(PENDING)
+  paymentId  String?           // For payment tracking
+  
+  @@index([status])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  email     String
+  phone     String
+  role      String
+  
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId    String
+
+  @@index([teamId])
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAITLISTED
+} 

@@ -30,12 +30,12 @@ export default function Header() {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-black/80 backdrop-blur-sm' : 'bg-transparent'
-      }`}
+      className={`fixed w-full z-50 transition-all duration-300 px-4 sm:px-6 lg:px-8 pt-6`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className={`max-w-7xl mx-auto rounded-2xl transition-all duration-300 ${
+        isScrolled ? 'bg-black/80 backdrop-blur-sm' : 'bg-black/40'
+      }`}>
+        <div className="flex items-center justify-between h-16 px-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -62,7 +62,7 @@ export default function Header() {
                 >
                   <Link
                     href={item.href}
-                    className="text-white hover:text-[#00CED1] transition-colors duration-200 font-medium"
+                    className="text-white hover:text-[#00CED1] transition-colors duration-200 font-orbitron"
                   >
                     {item.name}
                   </Link>
@@ -86,14 +86,14 @@ export default function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-black/95 backdrop-blur-sm"
+            className="md:hidden bg-black/95 backdrop-blur-sm mt-2 rounded-xl"
           >
             <div className="px-4 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[#00CED1] hover:bg-white/5 transition-colors duration-200"
+                  className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5 transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
