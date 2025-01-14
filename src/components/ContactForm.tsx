@@ -32,7 +32,7 @@ export default function ContactForm() {
             </span>
           </h2>
           <p className="text-white/60 max-w-2xl mx-auto">
-            Have questions? We'd love to hear from you.
+            Have questions? Wed love to hear from you.
           </p>
         </motion.div>
 
