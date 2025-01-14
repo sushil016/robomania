@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Play, Expand } from 'lucide-react'
@@ -74,7 +74,7 @@ const itemVariants = {
 }
 
 export default function MediaGallery() {
-  const [selectedItem, setSelectedItem] = useState<number | null>(null)
+ // const [selectedItem, setSelectedItem] = useState<number | null>(null)
 
   return (
     <section className="py-24 relative overflow-hidden">

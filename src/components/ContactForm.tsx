@@ -5,11 +5,11 @@ import { motion } from 'framer-motion'
 import { Send, Mail, User, MessageSquare } from 'lucide-react'
 
 export default function ContactForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  })
+  // const [formData, setFormData] = useState({
+  //   name: '',
+  //   email: '',
+  //   message: ''
+  // })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
