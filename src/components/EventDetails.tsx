@@ -34,7 +34,7 @@ const rules = [
 export default function EventDetails() {
   return (
     <section className="relative py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900 to-black" />
       
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div

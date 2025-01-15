@@ -14,7 +14,7 @@ type FormData = {
   leaderEmail: string
   leaderPhone: string
   robotName: string
-  robotWeight: number
+  robotWeight: number | string
   robotDimensions: string
   weaponType: string
   members: {
@@ -40,35 +40,109 @@ export default function Registration() {
     leaderEmail: '',
     leaderPhone: '',
     robotName: '',
-    robotWeight: 0,
+    robotWeight: '',
     robotDimensions: '',
     weaponType: '',
     members: [
       { name: '', email: '', phone: '', role: '' },
       { name: '', email: '', phone: '', role: '' },
+      { name: '', email: '', phone: '', role: '' },
     ]
   })
+
+  const validateForm = () => {
+    if (!formData.teamName || !formData.institution) {
+      setError('Team name and institution are required')
+      return false
+    }
+
+    if (!formData.leaderName || !formData.leaderEmail || !formData.leaderPhone) {
+      setError('Leader details are required')
+      return false
+    }
+
+    if (!formData.robotName || !formData.robotWeight || !formData.robotDimensions) {
+      setError('Robot details are required')
+      return false
+    }
+
+    const validMembers = formData.members.filter(member => 
+      member.name && member.email && member.phone && member.role
+    )
+    if (validMembers.length < 3) {
+      setError('At least 3 team members are required')
+      return false
+    }
+
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    if (!validateForm()) return
+    
     setLoading(true)
 
     try {
-      const response = await fetch('/api/register', {
+      // Register the team first
+      const registerResponse = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || 'Registration failed')
+      const registerResult = await registerResponse.json()
+      
+      if (!registerResponse.ok) {
+        throw new Error(registerResult.message || 'Registration failed')
       }
 
-      router.push('/registration/success')
+      // Create Razorpay order
+      const orderResponse = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          teamId: registerResult.team.id,
+          amount: 200
+        })
+      })
+
+      const orderResult = await orderResponse.json()
+      
+      if (!orderResponse.ok) {
+        throw new Error(orderResult.message || 'Failed to create payment order')
+      }
+
+      // Initialize Razorpay
+      if (typeof window.Razorpay === 'undefined') {
+        throw new Error('Razorpay SDK not loaded')
+      }
+
+      const RazorpayCheckout = new window.Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderResult.amount,
+        currency: "INR",
+        name: "RoboMania 2025",
+        description: "Team Registration Fee",
+        order_id: orderResult.orderId,
+        handler: function (response: any) {
+          window.location.href = `/registration/success?razorpay_payment_id=${response.razorpay_payment_id}&razorpay_order_id=${response.razorpay_order_id}&razorpay_signature=${response.razorpay_signature}`
+        },
+        prefill: {
+          email: formData.contactEmail,
+          contact: formData.contactPhone
+        },
+        theme: {
+          color: "#00CED1"
+        }
+      })
+
+      RazorpayCheckout.open()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      console.error('Registration error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to register. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -95,6 +169,24 @@ export default function Registration() {
         i === index ? { ...member, [field]: value } : member
       )
     }))
+  }
+
+  const addMember = () => {
+    if (formData.members.length < 6) {
+      setFormData(prev => ({
+        ...prev,
+        members: [...prev.members, { name: '', email: '', phone: '', role: '' }]
+      }))
+    }
+  }
+
+  const removeMember = (index: number) => {
+    if (formData.members.length > 3) {
+      setFormData(prev => ({
+        ...prev,
+        members: prev.members.filter((_, i) => i !== index)
+      }))
+    }
   }
 
   const renderStep1 = () => (
@@ -227,7 +319,19 @@ export default function Registration() {
     <div className="space-y-6">
       {formData.members.map((member, index) => (
         <div key={index} className="p-4 border border-white/10 rounded-lg space-y-4">
-          <h3 className="text-white/90 font-medium">Team Member {index + 1}</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-white/90 font-medium">Team Member {index + 1}</h3>
+            {formData.members.length > 3 && (
+              <button
+                type="button"
+                onClick={() => removeMember(index)}
+                className="text-red-500 hover:text-red-400"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
@@ -264,11 +368,28 @@ export default function Registration() {
           </div>
         </div>
       ))}
+
+      {formData.members.length < 6 && (
+        <button
+          type="button"
+          onClick={addMember}
+          className="w-full py-3 border-2 border-dashed border-white/20 rounded-lg hover:border-[#00CED1] transition-colors"
+        >
+          Add Team Member
+        </button>
+      )}
+
+      <div className="mt-8 p-4 bg-[#00CED1]/10 rounded-lg">
+        <h3 className="font-bold mb-2">Registration Fee: ₹200</h3>
+        <p className="text-sm text-white/60">
+          Payment will be processed in the next step after form submission.
+        </p>
+      </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen py-36 px-4">
+    <div className="min-h-screen py-36 px-4 ">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

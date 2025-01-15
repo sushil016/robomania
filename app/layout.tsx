@@ -3,7 +3,7 @@ import './globals.css'
 import { Inter, Orbitron } from 'next/font/google'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-
+import Providers from '../components/Providers'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
@@ -20,12 +20,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${orbitron.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <ThemeProvider  >
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </ThemeProvider>
+      <head>
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      </head>
+      <body className="min-h-screen font-sans antialiased">
+        <Providers>
+          <ThemeProvider>
+            <div className="min-h-screen bg-grid">
+              <Header />
+              <main>{children}</main>
+              <Footer />
+            </div>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )

@@ -35,7 +35,11 @@ model Team {
   status     RegistrationStatus @default(PENDING)
   paymentId  String?           // For payment tracking
   
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentDate  DateTime?
+  
   @@index([status])
+  @@index([paymentStatus])
 }
 
 model TeamMember {
@@ -59,4 +63,49 @@ enum RegistrationStatus {
   APPROVED
   REJECTED
   WAITLISTED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  email     String
+  message   String
+  status    ContactStatus @default(PENDING)
+  
+  @@index([status])
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  email     String   @unique
+  active    Boolean  @default(true)
+}
+
+enum ContactStatus {
+  PENDING
+  RESPONDED
+  ARCHIVED
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  email     String   @unique
+  password  String
+  name      String
+  role      AdminRole @default(ADMIN)
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
 } 

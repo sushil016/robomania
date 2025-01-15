@@ -40,8 +40,8 @@ export function HeroBackground() {
         className="absolute inset-0 opacity-30"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(255,69,0,0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255,69,0,0.1) 1px, transparent 1px)
+            linear-gradient(to right, rgba(255,69,0,0.1) 1px, transparent 2px),
+            linear-gradient(to bottom, rgba(255,69,0,0.1) 1px, transparent 2px)
           `,
           backgroundSize: '40px 40px'
         }}
@@ -52,7 +52,7 @@ export function HeroBackground() {
         className="absolute inset-0"
         animate={{
           background: [
-            'radial-gradient(circle at 0% 0%, rgba(255,69,0,0.4) 0%, transparent 50%)',
+            'radial-gradient(circle at 0% 0%, rgba(255,69,0,0.4) 0%, transparent 60%)',
             'radial-gradient(circle at 100% 100%, rgba(0,206,209,0.4) 0%, transparent 50%)',
           ],
         }}

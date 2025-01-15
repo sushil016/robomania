@@ -1,101 +1,144 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Send, Mail, User, MessageSquare } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 export default function ContactForm() {
-  // const [formData, setFormData] = useState({
-  //   name: '',
-  //   email: '',
-  //   message: ''
-  // })
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
+    setLoading(true)
+    setError('')
+    setSuccess(false)
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message')
+      }
+
+      setSuccess(true)
+      setFormData({ name: '', email: '', message: '' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <section className="relative py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black" />
-      
-      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-4xl font-bold font-orbitron mb-4">
-            <span className="bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
-              Contact Us
-            </span>
-          </h2>
-          <p className="text-white/60 max-w-2xl mx-auto">
-            Have questions? Wed love to hear from you.
+    <div className="min-h-screen py-24 px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-2xl mx-auto"
+      >
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+            Contact Us
+          </h1>
+          <p className="text-white/60">
+            Have questions? We'd love to hear from you.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-2xl mx-auto"
+        <motion.form
+          onSubmit={handleSubmit}
+          className="space-y-6 bg-black/30 p-8 rounded-lg backdrop-blur-sm border border-white/10"
         >
-          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-2xl border border-white/10">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="flex items-center text-sm font-medium text-white/70 mb-2">
-                  <User className="w-4 h-4 mr-2" />
-                  Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-white transition-all duration-200"
-                  placeholder="Your name"
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center text-sm font-medium text-white/70 mb-2">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-white transition-all duration-200"
-                  placeholder="your@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center text-sm font-medium text-white/70 mb-2">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Message
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-white transition-all duration-200"
-                  placeholder="Your message..."
-                />
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-lg font-medium flex items-center justify-center group"
-              >
-                <Send className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:translate-x-1" />
-                Send Message
-              </motion.button>
-            </form>
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
+              required
+            />
           </div>
-        </motion.div>
-      </div>
-    </section>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="message" className="block text-sm font-medium text-white/80 mb-2">
+              Message
+            </label>
+            <textarea
+              id="message"
+              value={formData.message}
+              onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+              rows={4}
+              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg font-semibold 
+              hover:scale-105 transition-transform duration-200 disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 mx-auto animate-spin" />
+            ) : (
+              'Send Message'
+            )}
+          </button>
+
+          {error && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-red-500 text-sm text-center"
+            >
+              {error}
+            </motion.p>
+          )}
+
+          {success && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-green-500 text-sm text-center"
+            >
+              Message sent successfully!
+            </motion.p>
+          )}
+        </motion.form>
+      </motion.div>
+    </div>
   )
 }
 

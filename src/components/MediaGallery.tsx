@@ -77,8 +77,8 @@ export default function MediaGallery() {
  // const [selectedItem, setSelectedItem] = useState<number | null>(null)
 
   return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-gray-900/50 to-background" />
+    <section className="py-24 relative overflow-hidden bg-transparent">
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-transparent" />
       
       <motion.div 
         initial={{ opacity: 0 }}
