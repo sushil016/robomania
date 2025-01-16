@@ -1,3 +1,1 @@
-interface Window {
-  Razorpay: any;
-} 
+ 

@@ -1,96 +1,142 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { CheckCircle, Loader2 } from 'lucide-react'
+import confetti from 'canvas-confetti'
 
 export default function RegistrationSuccess() {
   const searchParams = useSearchParams()
-  const [verifying, setVerifying] = useState(false)
-  const [verified, setVerified] = useState(false)
-  const [error, setError] = useState('')
+  const router = useRouter()
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending')
+  const orderId = searchParams.get('order_id')
 
   useEffect(() => {
-    const paymentId = searchParams.get('razorpay_payment_id')
-    const orderId = searchParams.get('razorpay_order_id')
-    const signature = searchParams.get('razorpay_signature')
+    // Load Razorpay script
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    document.body.appendChild(script)
 
-    if (paymentId && orderId && signature) {
-      verifyPayment(paymentId, orderId, signature)
-    } else {
-      setVerified(true) // No payment to verify
+    return () => {
+      document.body.removeChild(script)
     }
-  }, [searchParams])
+  }, [])
 
-  const verifyPayment = async (paymentId: string, orderId: string, signature: string) => {
-    setVerifying(true)
-    try {
-      const res = await fetch('/api/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId, orderId, signature })
-      })
-      
-      const data = await res.json()
-      if (data.success) {
-        setVerified(true)
-      } else {
-        setError('Payment verification failed')
+  useEffect(() => {
+    if (orderId && paymentStatus === 'pending') {
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        order_id: orderId,
+        handler: async (response: any) => {
+          try {
+            const result = await fetch('/api/payment/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                orderId,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature
+              }),
+            })
+
+            if (result.ok) {
+              setPaymentStatus('success')
+              showConfetti()
+            } else {
+              setPaymentStatus('failed')
+            }
+          } catch (error) {
+            setPaymentStatus('failed')
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            router.push('/registration')
+          }
+        }
       }
-    } catch (err) {
-      setError('Failed to verify payment')
-    } finally {
-      setVerifying(false)
-    }
-  }
 
-  if (verifying) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-          <p className="text-lg">Verifying payment...</p>
-        </div>
-      </div>
-    )
+      const razorpay = new (window as any).Razorpay(options)
+      razorpay.open()
+    }
+  }, [orderId, paymentStatus, router])
+
+  const showConfetti = () => {
+    const duration = 3 * 1000
+    const animationEnd = Date.now() + duration
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+
+    const randomInRange = (min: number, max: number) => {
+      return Math.random() * (max - min) + min
+    }
+
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now()
+      if (timeLeft <= 0) return clearInterval(interval)
+
+      const particleCount = 50 * (timeLeft / duration)
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+      })
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+      })
+    }, 250)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen pt-20 pb-10 px-4 flex items-center justify-center">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-md w-full bg-black/50 backdrop-blur-sm p-8 rounded-2xl border border-white/10 text-center"
       >
-        {error ? (
+        {paymentStatus === 'pending' ? (
           <>
-            <div className="text-red-500 mb-4">{error}</div>
-            <Link
-              href="/registration"
-              className="inline-block px-6 py-3 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-lg"
+            <Loader2 className="w-16 h-16 mx-auto text-[#00CED1] mb-6 animate-spin" />
+            <h1 className="text-2xl font-bold font-orbitron mb-4">
+              Processing Payment...
+            </h1>
+          </>
+        ) : paymentStatus === 'success' ? (
+          <>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2 }}
             >
-              Try Again
-            </Link>
+              <CheckCircle className="w-16 h-16 mx-auto text-[#00CED1] mb-6" />
+            </motion.div>
+            <h1 className="text-2xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+              Registration Successful!
+            </h1>
+            <p className="text-white/70 mb-8">
+              Thank you for registering for RoboMania 2025. We have sent a confirmation email with further details.
+            </p>
           </>
         ) : (
           <>
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold font-orbitron mb-4">
-              Registration Successful!
+            <h1 className="text-2xl font-bold font-orbitron mb-4 text-red-500">
+              Payment Failed
             </h1>
-            <p className="text-white/60 mb-8">
-              Thank you for registering. You will receive a confirmation email shortly.
+            <p className="text-white/70 mb-8">
+              There was an issue processing your payment. Please try again.
             </p>
-            <Link
-              href="/"
-              className="inline-block px-6 py-3 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-lg transition duration-200 hover:scale-105"
-            >
-              Return to Home
-            </Link>
           </>
         )}
+        
+        <Link
+          href="/"
+          className="inline-block px-6 py-3 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-lg transition duration-200 hover:scale-105"
+        >
+          Return to Home
+        </Link>
       </motion.div>
     </div>
   )

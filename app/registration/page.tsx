@@ -1,11 +1,15 @@
 'use client'
 
+import { useSession, signIn } from 'next-auth/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChevronRight, ChevronLeft, Loader2, Users, Bot, School } from 'lucide-react'
+import { Loader2, Users, Bot, School } from 'lucide-react'
+import LoginButton from '@/components/LoginButton'
+import type { Session } from 'next-auth'
 
-type FormData = {
+
+interface FormData {
   teamName: string
   institution: string
   contactEmail: string
@@ -14,7 +18,7 @@ type FormData = {
   leaderEmail: string
   leaderPhone: string
   robotName: string
-  robotWeight: number | string
+  robotWeight: string | number
   robotDimensions: string
   weaponType: string
   members: {
@@ -26,18 +30,20 @@ type FormData = {
 }
 
 export default function Registration() {
+  const { data: session, status } = useSession()
+  const searchParams = useSearchParams()
+  const authError = searchParams.get('error')
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState<FormData>({
     teamName: '',
     institution: '',
-    contactEmail: '',
+    contactEmail: session?.user?.email || '',
     contactPhone: '',
-    leaderName: '',
-    leaderEmail: '',
+    leaderName: session?.user?.name || '',
+    leaderEmail: session?.user?.email || '',
     leaderPhone: '',
     robotName: '',
     robotWeight: '',
@@ -45,114 +51,60 @@ export default function Registration() {
     weaponType: '',
     members: [
       { name: '', email: '', phone: '', role: '' },
-      { name: '', email: '', phone: '', role: '' },
-      { name: '', email: '', phone: '', role: '' },
+      { name: '', email: '', phone: '', role: '' }
     ]
   })
 
-  const validateForm = () => {
-    if (!formData.teamName || !formData.institution) {
-      setError('Team name and institution are required')
-      return false
-    }
-
-    if (!formData.leaderName || !formData.leaderEmail || !formData.leaderPhone) {
-      setError('Leader details are required')
-      return false
-    }
-
-    if (!formData.robotName || !formData.robotWeight || !formData.robotDimensions) {
-      setError('Robot details are required')
-      return false
-    }
-
-    const validMembers = formData.members.filter(member => 
-      member.name && member.email && member.phone && member.role
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
     )
-    if (validMembers.length < 3) {
-      setError('At least 3 team members are required')
-      return false
-    }
+  }
 
+  if (!session) {
+    return (
+      <div className="min-h-screen py-36 px-4">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-3xl font-bold font-orbitron mb-6 bg-gradient-to-r from-vibrant-orange to-turquoise bg-clip-text text-transparent">
+            Sign in to Register
+          </h1>
+          {authError && (
+            <div className="text-red-500 mb-4">
+              There was an error signing in. Please try again.
+            </div>
+          )}
+          <p className="text-white/60 mb-8">
+            Please sign in with Google to register your team
+          </p>
+          <LoginButton />
+        </div>
+      </div>
+    )
+  }
+
+  const validateForm = () => {
+    if (currentStep === 1) {
+      if (!formData.teamName || !formData.institution || !formData.contactEmail || !formData.contactPhone) {
+        setError('Please fill in all required fields')
+        return false
+      }
+    } else if (currentStep === 2) {
+      if (!formData.robotName || !formData.robotWeight || !formData.robotDimensions || !formData.weaponType) {
+        setError('Please fill in all robot details')
+        return false
+      }
+    } else if (currentStep === 3) {
+      const validMembers = formData.members.filter(m => m.name && m.email && m.phone && m.role)
+      if (validMembers.length < 2) {
+        setError('Please add at least 2 team members')
+        return false
+      }
+    }
+    setError('')
     return true
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    
-    if (!validateForm()) return
-    
-    setLoading(true)
-
-    try {
-      // Register the team first
-      const registerResponse = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-
-      const registerResult = await registerResponse.json()
-      
-      if (!registerResponse.ok) {
-        throw new Error(registerResult.message || 'Registration failed')
-      }
-
-      // Create Razorpay order
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          teamId: registerResult.team.id,
-          amount: 200
-        })
-      })
-
-      const orderResult = await orderResponse.json()
-      
-      if (!orderResponse.ok) {
-        throw new Error(orderResult.message || 'Failed to create payment order')
-      }
-
-      // Initialize Razorpay
-      if (typeof window.Razorpay === 'undefined') {
-        throw new Error('Razorpay SDK not loaded')
-      }
-
-      const RazorpayCheckout = new window.Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderResult.amount,
-        currency: "INR",
-        name: "RoboMania 2025",
-        description: "Team Registration Fee",
-        order_id: orderResult.orderId,
-        handler: function (response: any) {
-          window.location.href = `/registration/success?razorpay_payment_id=${response.razorpay_payment_id}&razorpay_order_id=${response.razorpay_order_id}&razorpay_signature=${response.razorpay_signature}`
-        },
-        prefill: {
-          email: formData.contactEmail,
-          contact: formData.contactPhone
-        },
-        theme: {
-          color: "#00CED1"
-        }
-      })
-
-      RazorpayCheckout.open()
-    } catch (err) {
-      console.error('Registration error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to register. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const steps = [
-    { id: 1, title: 'Team Details', icon: Users },
-    { id: 2, title: 'Robot Details', icon: Bot },
-    { id: 3, title: 'Team Members', icon: School }
-  ]
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -171,316 +123,356 @@ export default function Registration() {
     }))
   }
 
-  const addMember = () => {
-    if (formData.members.length < 6) {
-      setFormData(prev => ({
-        ...prev,
-        members: [...prev.members, { name: '', email: '', phone: '', role: '' }]
-      }))
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateForm()) return
+    
+    setLoading(true)
+    try {
+      const cleanedMembers = formData.members.filter(member => 
+        member.name && member.email && member.phone && member.role
+      )
+
+      const dataToSubmit = {
+        ...formData,
+        members: cleanedMembers,
+        robotWeight: parseFloat(formData.robotWeight.toString()),
+        userId: (session as Session).user.id
+      }
+
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSubmit)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Registration failed')
+      }
+
+      router.push(`/registration/success?order_id=${result.payment.id}`)
+    } catch (err) {
+      console.error('Registration error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to register. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const removeMember = (index: number) => {
-    if (formData.members.length > 3) {
-      setFormData(prev => ({
-        ...prev,
-        members: prev.members.filter((_, i) => i !== index)
-      }))
-    }
-  }
-
-  const renderStep1 = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="text"
-          name="teamName"
-          placeholder="Team Name"
-          value={formData.teamName}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-        <input
-          type="text"
-          name="institution"
-          placeholder="Institution"
-          value={formData.institution}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="email"
-          name="contactEmail"
-          placeholder="Contact Email"
-          value={formData.contactEmail}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-        <input
-          type="tel"
-          name="contactPhone"
-          placeholder="Contact Phone"
-          value={formData.contactPhone}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        <input
-          type="text"
-          name="leaderName"
-          placeholder="Team Leader Name"
-          value={formData.leaderName}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-        <input
-          type="email"
-          name="leaderEmail"
-          placeholder="Team Leader Email"
-          value={formData.leaderEmail}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-        <input
-          type="tel"
-          name="leaderPhone"
-          placeholder="Team Leader Phone"
-          value={formData.leaderPhone}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-      </div>
-    </div>
-  )
-
-  const renderStep2 = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="text"
-          name="robotName"
-          placeholder="Robot Name"
-          value={formData.robotName}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-        <input
-          type="number"
-          name="robotWeight"
-          placeholder="Robot Weight (kg)"
-          value={formData.robotWeight || ''}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-          required
-        />
-      </div>
-
-      <input
-        type="text"
-        name="robotDimensions"
-        placeholder="Robot Dimensions (LxWxH in cm)"
-        value={formData.robotDimensions}
-        onChange={handleInputChange}
-        className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-        required
-      />
-
-      <select
-        name="weaponType"
-        value={formData.weaponType}
-        onChange={(e) => setFormData(prev => ({ ...prev, weaponType: e.target.value }))}
-        className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-        required
-      >
-        <option value="">Select Weapon Type</option>
-        <option value="spinner">Spinner</option>
-        <option value="flipper">Flipper</option>
-        <option value="crusher">Crusher</option>
-        <option value="hammer">Hammer</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-  )
-
-  const renderStep3 = () => (
-    <div className="space-y-6">
-      {formData.members.map((member, index) => (
-        <div key={index} className="p-4 border border-white/10 rounded-lg space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-white/90 font-medium">Team Member {index + 1}</h3>
-            {formData.members.length > 3 && (
-              <button
-                type="button"
-                onClick={() => removeMember(index)}
-                className="text-red-500 hover:text-red-400"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Name"
-              value={member.name}
-              onChange={(e) => handleMemberChange(index, 'name', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={member.email}
-              onChange={(e) => handleMemberChange(index, 'email', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-              required
-            />
-            <input
-              type="tel"
-              placeholder="Phone"
-              value={member.phone}
-              onChange={(e) => handleMemberChange(index, 'phone', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Role"
-              value={member.role}
-              onChange={(e) => handleMemberChange(index, 'role', e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
-              required
-            />
-          </div>
-        </div>
-      ))}
-
-      {formData.members.length < 6 && (
-        <button
-          type="button"
-          onClick={addMember}
-          className="w-full py-3 border-2 border-dashed border-white/20 rounded-lg hover:border-[#00CED1] transition-colors"
-        >
-          Add Team Member
-        </button>
-      )}
-
-      <div className="mt-8 p-4 bg-[#00CED1]/10 rounded-lg">
-        <h3 className="font-bold mb-2">Registration Fee: ₹200</h3>
-        <p className="text-sm text-white/60">
-          Payment will be processed in the next step after form submission.
-        </p>
-      </div>
-    </div>
-  )
+  const steps = [
+    { id: 1, title: 'Team Details', icon: Users },
+    { id: 2, title: 'Robot Details', icon: Bot },
+    { id: 3, title: 'Team Members', icon: School }
+  ]
 
   return (
-    <div className="min-h-screen py-36 px-4 ">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto"
-      >
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
-            Register Your Team
-          </h1>
-          <p className="text-white/60">
-            Join the ultimate robot battle competition
-          </p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="flex justify-center mb-8">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 
-                  ${currentStep >= step.id 
-                    ? 'border-[#00CED1] text-[#00CED1]' 
-                    : 'border-white/20 text-white/20'
-                  }`}
-              >
-                <step.icon className="w-5 h-5" />
-              </div>
-              {index < steps.length - 1 && (
-                <div 
-                  className={`w-20 h-0.5 mx-2 
-                    ${currentStep > step.id ? 'bg-[#00CED1]' : 'bg-white/20'}`
-                  } 
-                />
-              )}
+    <div className="min-h-screen py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          {steps.map((step) => (
+            <div
+              key={step.id}
+              className={`flex items-center ${
+                currentStep === step.id ? 'text-turquoise' : 'text-gray-400'
+              }`}
+            >
+              <step.icon className="w-6 h-6 mr-2" />
+              <span>{step.title}</span>
             </div>
           ))}
         </div>
 
-        <div className="bg-black/50 backdrop-blur-sm p-8 rounded-2xl border border-white/10">
-          <form onSubmit={handleSubmit}>
-            {currentStep === 1 && renderStep1()}
-            {currentStep === 2 && renderStep2()}
-            {currentStep === 3 && renderStep3()}
+        <motion.form
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={handleSubmit}
+          className="space-y-6 bg-black/20 p-8 rounded-lg border border-white/10"
+        >
+          {/* Step 1: Team Details */}
+          {currentStep === 1 && (
+            <div className="space-y-4">
+                <div>
+                <label htmlFor="teamName" className="block text-sm font-medium text-white/60 mb-1">
+                  Team Name *
+                  </label>
+                  <input
+                    type="text"
+                  id="teamName"
+                    name="teamName"
+                    value={formData.teamName}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter team name"
+                  />
+                </div>
 
-            {error && (
-              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500">
-                {error}
+                <div>
+                <label htmlFor="institution" className="block text-sm font-medium text-white/60 mb-1">
+                  Institution *
+                  </label>
+                  <input
+                    type="text"
+                  id="institution"
+                    name="institution"
+                    value={formData.institution}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter institution name"
+                />
               </div>
-            )}
 
-            <div className="mt-8 flex justify-between">
-              {currentStep > 1 && (
+              <div>
+                <label htmlFor="contactEmail" className="block text-sm font-medium text-white/60 mb-1">
+                  Contact Email *
+                </label>
+                <input
+                  type="email"
+                  id="contactEmail"
+                  name="contactEmail"
+                  value={formData.contactEmail}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter contact email"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="contactPhone" className="block text-sm font-medium text-white/60 mb-1">
+                  Contact Phone *
+                </label>
+                <input
+                  type="tel"
+                  id="contactPhone"
+                  name="contactPhone"
+                  value={formData.contactPhone}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter contact phone"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="leaderName" className="block text-sm font-medium text-white/60 mb-1">
+                  Team Leader Name *
+                </label>
+                <input
+                  type="text"
+                  id="leaderName"
+                  name="leaderName"
+                  value={formData.leaderName}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter team leader name"
+                  />
+                </div>
+
+                <div>
+                <label htmlFor="leaderEmail" className="block text-sm font-medium text-white/60 mb-1">
+                  Team Leader Email *
+                  </label>
+                  <input
+                    type="email"
+                  id="leaderEmail"
+                  name="leaderEmail"
+                  value={formData.leaderEmail}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter team leader email"
+                  />
+                </div>
+
+                <div>
+                <label htmlFor="leaderPhone" className="block text-sm font-medium text-white/60 mb-1">
+                  Team Leader Phone *
+                  </label>
+                  <input
+                  type="tel"
+                  id="leaderPhone"
+                  name="leaderPhone"
+                  value={formData.leaderPhone}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter team leader phone"
+                  />
+                </div>
+            </div>
+          )}
+
+          {/* Step 2: Robot Details */}
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="robotName" className="block text-sm font-medium text-white/60 mb-1">
+                  Robot Name *
+                </label>
+                <input
+                  type="text"
+                  id="robotName"
+                  name="robotName"
+                  value={formData.robotName}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter robot name"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="robotWeight" className="block text-sm font-medium text-white/60 mb-1">
+                  Robot Weight (kg) *
+                </label>
+                <input
+                  type="number"
+                  id="robotWeight"
+                  name="robotWeight"
+                  value={formData.robotWeight}
+                  onChange={handleInputChange}
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter robot weight"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="robotDimensions" className="block text-sm font-medium text-white/60 mb-1">
+                  Robot Dimensions (LxWxH cm) *
+                </label>
+                <input
+                  type="text"
+                  id="robotDimensions"
+                  name="robotDimensions"
+                  value={formData.robotDimensions}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="e.g., 30x20x15"
+                />
+              </div>
+
+                <div>
+                <label htmlFor="weaponType" className="block text-sm font-medium text-white/60 mb-1">
+                  Weapon Type *
+                  </label>
+                <input
+                  type="text"
+                  id="weaponType"
+                  name="weaponType"
+                  value={formData.weaponType}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                  placeholder="Enter weapon type"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Team Members */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+                  {formData.members.map((member, index) => (
+                <div key={index} className="space-y-4 p-4 border border-white/10 rounded-lg">
+                  <h3 className="text-lg font-medium">Team Member {index + 1}</h3>
+                  
+                  <div>
+                    <label htmlFor={`member-${index}-name`} className="block text-sm font-medium text-white/60 mb-1">
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      id={`member-${index}-name`}
+                      value={member.name}
+                      onChange={(e) => handleMemberChange(index, 'name', e.target.value)}
+                      className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                      placeholder="Enter member name"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor={`member-${index}-email`} className="block text-sm font-medium text-white/60 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      id={`member-${index}-email`}
+                      value={member.email}
+                      onChange={(e) => handleMemberChange(index, 'email', e.target.value)}
+                      className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                      placeholder="Enter member email"
+                    />
+                </div>
+
+                <div>
+                    <label htmlFor={`member-${index}-phone`} className="block text-sm font-medium text-white/60 mb-1">
+                      Phone *
+                  </label>
+                  <input
+                    type="tel"
+                      id={`member-${index}-phone`}
+                      value={member.phone}
+                      onChange={(e) => handleMemberChange(index, 'phone', e.target.value)}
+                      className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                      placeholder="Enter member phone"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor={`member-${index}-role`} className="block text-sm font-medium text-white/60 mb-1">
+                      Role *
+                    </label>
+                    <input
+                      type="text"
+                      id={`member-${index}-role`}
+                      value={member.role}
+                      onChange={(e) => handleMemberChange(index, 'role', e.target.value)}
+                      className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-turquoise text-white"
+                      placeholder="Enter member role"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+
+          <div className="flex justify-between">
+            {currentStep > 1 && (
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="flex items-center px-6 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                onClick={() => setCurrentStep(prev => prev - 1)}
+                className="px-4 py-2 text-sm border border-white/10 rounded-lg hover:bg-white/5"
                 >
-                  <ChevronLeft className="w-5 h-5 mr-2" />
                   Previous
                 </button>
               )}
-              
-              {currentStep < 3 ? (
+            {currentStep < 3 ? (
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(prev => prev + 1)}
-                  className="flex items-center px-6 py-3 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg ml-auto"
+                onClick={() => {
+                  if (validateForm()) setCurrentStep(prev => prev + 1)
+                }}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-vibrant-orange to-turquoise rounded-lg hover:opacity-90"
                 >
                   Next
-                  <ChevronRight className="w-5 h-5 ml-2" />
                 </button>
               ) : (
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center px-6 py-3 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg ml-auto disabled:opacity-50"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    'Complete Registration'
-                  )}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-vibrant-orange to-turquoise rounded-lg hover:opacity-90 disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  'Submit Registration'
+                )}
                 </button>
               )}
             </div>
-          </form>
-        </div>
-      </motion.div>
+        </motion.form>
+      </div>
     </div>
   )
 }

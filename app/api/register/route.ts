@@ -100,7 +100,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
           success: true,
-          team: team,
+          team,
           payment
         })
       } catch (paymentError) {

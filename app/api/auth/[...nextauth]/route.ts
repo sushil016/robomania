@@ -1,48 +1,32 @@
 import NextAuth from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import { NextAuthOptions } from 'next-auth'
+import GoogleProvider from 'next-auth/providers/google'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import { Prisma } from '@prisma/client'
 
-export const authOptions: NextAuthOptions = {
+
+export const authOptions = {
+  adapter: PrismaAdapter(Prisma),
   providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        
-        if (credentials.email === 'admin@robomania.com' && 
-            credentials.password === 'admin123') {
-          return {
-            id: '1',
-            email: credentials.email,
-            role: 'admin'
-          }
-        }
-        return null
-      }
-    })
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
   pages: {
-    signIn: '/admin/login',
+    signIn: '/registration',
+    error: '/registration',
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role
-      }
-      return token
-    },
-    async session({ session, token }) {
+    async session({ session, user }) {
       if (session.user) {
-        (session.user as any).role = token.role
+        session.user.id = user.id
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      return `${baseUrl}/registration`
     }
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+  }
 }
 
 const handler = NextAuth(authOptions)

@@ -20,10 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${orbitron.variable}`}>
-      <head>
-        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-      </head>
-      <body className="min-h-screen font-sans antialiased">
+      <body className="min-h-screen  font-sans antialiased">
         <Providers>
           <ThemeProvider>
             <div className="min-h-screen bg-grid">
