@@ -11,7 +11,7 @@ export default function RegistrationSuccess() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending')
-  const orderId = searchParams.get('order_id')
+  const orderId = searchParams ? searchParams.get('order_id') : null
 
   useEffect(() => {
     // Load Razorpay script

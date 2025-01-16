@@ -32,7 +32,7 @@ interface FormData {
 export default function Registration() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
-  const authError = searchParams.get('error')
+  const authError = searchParams ? searchParams.get('error') : null
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
