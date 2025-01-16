@@ -24,6 +24,7 @@ interface RegistrationData {
   robotDimensions: string
   weaponType: string
   members: TeamMember[]
+  userEmail: string
 }
 
 export async function POST(request: Request) {
@@ -63,6 +64,11 @@ export async function POST(request: Request) {
           weaponType: data.weaponType,
           status: 'PENDING',
           paymentStatus: 'PENDING',
+          user: {
+            connect: {
+              email: data.userEmail
+            }
+          },
           members: {
             create: data.members.map((member) => ({
               name: member.name,

@@ -4,19 +4,30 @@ import { sendStatusUpdateEmail } from '@/lib/email'
 
 const prisma = new PrismaClient()
 
+// Define proper route segment config
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+// Define params type following Next.js 15 conventions
+type Context = {
+  params: {
+    id: string
+  }
+}
+
+// Note the type annotation for the function itself
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } }
-) {
+  { params }: Context
+): Promise<NextResponse> {
   try {
     const { status, message } = await request.json()
     
     const team = await prisma.team.update({
-      where: { id: context.params.id },
+      where: { id: params.id },
       data: { status }
     })
 
-    // Send status update email
     await sendStatusUpdateEmail({
       teamName: team.teamName,
       leaderName: team.leaderName,

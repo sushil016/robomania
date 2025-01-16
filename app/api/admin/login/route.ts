@@ -22,7 +22,8 @@ export async function POST(request: Request) {
     })
 
     // Set cookie
-    cookies().set('admin_token', token, {
+    const cookieStore = await cookies() // Await to get the cookies object
+    await cookieStore.set('admin_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',

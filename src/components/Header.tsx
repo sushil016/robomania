@@ -2,21 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, User, LogOut, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSession, signOut } from 'next-auth/react'
+import Image from 'next/image'
 
 const navItems = [
   { name: 'Home', href: '/' },
   { name: 'Event Details', href: '/event-details' },
-  { name: 'Registration', href: '/registration' },
   { name: 'Live Updates', href: '/live-updates' },
   { name: 'Media Gallery', href: '/media-gallery' },
   { name: 'Contact Us', href: '/contact' },
 ]
 
 export default function Header() {
+  const { data: session, status } = useSession()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [hasRegistered, setHasRegistered] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +29,22 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Check if user has registered
+  useEffect(() => {
+    const checkRegistration = async () => {
+      if (session?.user?.email) {
+        try {
+          const response = await fetch(`/api/check-registration?email=${session.user.email}`)
+          const data = await response.json()
+          setHasRegistered(data.hasRegistered)
+        } catch (error) {
+          console.error('Failed to check registration status:', error)
+        }
+      }
+    }
+    checkRegistration()
+  }, [session])
 
   return (
     <motion.header
@@ -36,6 +56,7 @@ export default function Header() {
         isScrolled ? 'bg-black/80 backdrop-blur-sm' : 'bg-black/40'
       }`}>
         <div className="flex items-center justify-between h-16 px-4">
+          {/* Logo */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -46,7 +67,9 @@ export default function Header() {
               RoboMania 2025
             </Link>
           </motion.div>
-          <nav className="hidden md:block">
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
             <motion.ul 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -69,7 +92,73 @@ export default function Header() {
                 </motion.li>
               ))}
             </motion.ul>
+
+            {/* User Menu */}
+            {session?.user && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-2 text-white hover:text-[#00CED1] transition-colors duration-200"
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden">
+                    {session.user.image ? (
+                      <Image
+                        src={session.user.image}
+                        alt="Profile"
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <User className="w-full h-full p-1" />
+                    )}
+                  </div>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 mt-2 w-48 rounded-xl bg-black/95 backdrop-blur-sm border border-white/10 shadow-lg py-1"
+                    >
+                      {hasRegistered ? (
+                        <Link
+                          href="/team-register/details"
+                          className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          View Registration
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/team-register"
+                          className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Register for RoboMania
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => {
+                          signOut()
+                          setIsDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </nav>
+
+          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -80,6 +169,8 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -99,6 +190,37 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
+              {session?.user && (
+                <>
+                  {hasRegistered ? (
+                    <Link
+                      href="/registration/details"
+                      className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      View Registration
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/team-register"
+                      className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Register for RoboMania
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      signOut()
+                      setIsMenuOpen(false)
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5 flex items-center space-x-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                </>
+              )}
             </div>
           </motion.div>
         )}

@@ -286,4 +286,65 @@ export const eventUpdateEmailTemplate = ({
   </div>
 </body>
 </html>
-` 
+`
+
+export const adminEmailTemplate = ({
+  adminName,
+  subject,
+  message,
+}: {
+  adminName: string;
+  subject: string;
+  message: string;
+}) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .container {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+      color: #333;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      padding: 20px;
+      background-color: white;
+      border-radius: 0 0 8px 8px;
+    }
+    .footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${subject}</h1>
+    </div>
+    <div class="content">
+      <p>Dear ${adminName},</p>
+      <p>${message}</p>
+    </div>
+    <div class="footer">
+      <p>If you have any questions, please contact support.</p>
+      <small>© 2024 Your Company. All rights reserved.</small>
+    </div>
+  </div>
+</body>
+</html>
+`; 

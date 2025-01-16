@@ -9,8 +9,8 @@ datasource db {
 
 model Team {
   id        String   @id @default(cuid())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id])
+  userEmail String   
+  user      User     @relation(fields: [userEmail], references: [email])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -35,13 +35,14 @@ model Team {
   
   // Status
   status     RegistrationStatus @default(PENDING)
-  paymentId  String?           // For payment tracking
+  paymentId  String?  @unique  // For payment tracking
   
   paymentStatus PaymentStatus @default(PENDING)
   paymentDate  DateTime?
   
   @@index([status])
   @@index([paymentStatus])
+  @@unique([userEmail])
 }
 
 model TeamMember {
@@ -120,7 +121,7 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  team          Team?     // One user can have one team
+  team          Team?     
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }

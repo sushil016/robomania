@@ -1,14 +1,24 @@
-import { withAuth } from "next-auth/middleware"
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
-export default withAuth({
-  callbacks: {
-    authorized: ({ req }) => {
-      const path = req.nextUrl.pathname
-      return true // Allow public access to all other routes
+// Protect only registration routes
+export default withAuth(
+  function middleware(req) {
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token, req }) => {
+        // Only require authentication for registration routes
+        if (req.nextUrl.pathname.startsWith('/registration')) {
+          return !!token;
+        }
+        return true;
+      }
     }
   }
-})
+);
 
 export const config = {
-  matcher: ['/registration']
-} 
+  matcher: ['/registration/:path*', '/team-register/:path*']
+};

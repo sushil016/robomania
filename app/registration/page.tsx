@@ -1,13 +1,11 @@
 'use client'
 
-import { useSession, signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2, Users, Bot, School } from 'lucide-react'
-import LoginButton from '@/components/LoginButton'
 import type { Session } from 'next-auth'
-
 
 interface FormData {
   teamName: string
@@ -31,8 +29,6 @@ interface FormData {
 
 export default function Registration() {
   const { data: session, status } = useSession()
-  const searchParams = useSearchParams()
-  const authError = searchParams ? searchParams.get('error') : null
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -40,10 +36,10 @@ export default function Registration() {
   const [formData, setFormData] = useState<FormData>({
     teamName: '',
     institution: '',
-    contactEmail: session?.user?.email || '',
+    contactEmail: '',
     contactPhone: '',
-    leaderName: session?.user?.name || '',
-    leaderEmail: session?.user?.email || '',
+    leaderName: '',
+    leaderEmail: '',
     leaderPhone: '',
     robotName: '',
     robotWeight: '',
@@ -55,6 +51,26 @@ export default function Registration() {
     ]
   })
 
+  // Update form with session data when available
+  useEffect(() => {
+    if (session?.user) {
+      setFormData(prev => ({
+        ...prev,
+        contactEmail: session.user.email || '',
+        leaderName: session.user.name || '',
+        leaderEmail: session.user.email || ''
+      }))
+    }
+  }, [session])
+
+  // // Handle authentication check
+  // useEffect(() => {
+  //   if (status === 'unauthenticated') {
+  //     router.replace('/auth')
+  //   }
+  // }, [status, router])
+
+  // Show loading state while checking auth
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -63,26 +79,10 @@ export default function Registration() {
     )
   }
 
-  if (!session) {
-    return (
-      <div className="min-h-screen py-36 px-4">
-        <div className="max-w-md mx-auto text-center">
-          <h1 className="text-3xl font-bold font-orbitron mb-6 bg-gradient-to-r from-vibrant-orange to-turquoise bg-clip-text text-transparent">
-            Sign in to Register
-          </h1>
-          {authError && (
-            <div className="text-red-500 mb-4">
-              There was an error signing in. Please try again.
-            </div>
-          )}
-          <p className="text-white/60 mb-8">
-            Please sign in with Google to register your team
-          </p>
-          <LoginButton />
-        </div>
-      </div>
-    )
-  }
+  // Don't render if not authenticated
+  // if (!session) {
+  //   return null
+  // }
 
   const validateForm = () => {
     if (currentStep === 1) {
@@ -168,7 +168,7 @@ export default function Registration() {
   ]
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-12 pt-24">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           {steps.map((step) => (

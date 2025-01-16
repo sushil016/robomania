@@ -4,18 +4,26 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { HeroBackground } from './HeroBackground'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 export default function Hero() {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const [isClient, setIsClient] = useState(false)
   const [timeLeft, setTimeLeft] = useState({
     days: '--',
     hours: '--',
     minutes: '--',
     seconds: '--',
   })
-  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
     const calculateTimeLeft = () => {
       const eventDate = new Date('2025-03-12T00:00:00').getTime()
       const now = new Date().getTime()
@@ -37,7 +45,17 @@ export default function Hero() {
     return () => clearInterval(timer)
   }, [])
 
-  if (!isMounted) return null
+  const handleRegistrationClick = () => {
+    router.push('/team-register')
+  }
+
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    )
+  }
 
   const container = {
     hidden: { opacity: 0 },
@@ -106,17 +124,17 @@ export default function Hero() {
             variants={item}
             className="flex flex-wrap justify-center gap-4"
           >
-            <Link
-              href="/registration"
+            <button
+              onClick={handleRegistrationClick}
               className="relative inline-flex group"
             >
               <div className="absolute -inset-0.5 bg-gradient-to-r from-vibrant-orange to-turquoise rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-              <button className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
+              <span className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
                 <span className="text-white group-hover:text-white transition duration-200">
-                  Register Now
+                  {session ? 'Register Now' : 'Sign Up'}
                 </span>
-              </button>
-            </Link>
+              </span>
+            </button>
             
             <Link
               href="/event-details"

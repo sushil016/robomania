@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { adminEmailTemplate } from './emailTemplates'
 
+
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendAdminNotification({
@@ -17,7 +18,11 @@ export async function sendAdminNotification({
       from: 'RoboMania Admin <admin@robomania2025.com>',
       to: adminEmails,
       subject,
-      html: adminEmailTemplate({ subject, message }),
+      html: adminEmailTemplate({ 
+        adminName: 'Admin',
+        subject, 
+        message 
+      }),
     })
   } catch (error) {
     console.error('Failed to send admin notification:', error)

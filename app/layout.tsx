@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${orbitron.variable}`}>
-      <body className="min-h-screen  font-sans antialiased">
+      <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
         <Providers>
           <ThemeProvider>
             <div className="min-h-screen bg-grid">
