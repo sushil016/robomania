@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react'
 
 export default function Hero() {
   const { data: session } = useSession()
+  
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
   const [timeLeft, setTimeLeft] = useState({
@@ -131,7 +132,7 @@ export default function Hero() {
               <div className="absolute -inset-0.5 bg-gradient-to-r from-vibrant-orange to-turquoise rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
               <span className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
                 <span className="text-white group-hover:text-white transition duration-200">
-                  {session ? 'Register Now' : 'Sign Up'}
+                  Register Now
                 </span>
               </span>
             </button>

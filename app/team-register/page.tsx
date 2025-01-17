@@ -57,18 +57,18 @@ export default function TeamRegistration() {
     ]
   })
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/auth')
-    }
-  }, [status, router])
+  // useEffect(() => {
+  //   if (status === 'unauthenticated') {
+  //     router.replace('/auth')
+  //   }
+  // }, [status, router])
 
-  useEffect(() => {
-    if (session) {
-      console.log('Session data:', session)
-      console.log('User ID:', session?.user?.id)
-    }
-  }, [session])
+  // useEffect(() => {
+  //   if (session) {
+  //     console.log('Session data:', session)
+  //     console.log('User ID:', session?.user?.id)
+  //   }
+  // }, [session])
 
   useEffect(() => {
     const loadRazorpay = async () => {
