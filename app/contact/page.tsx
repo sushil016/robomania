@@ -3,7 +3,7 @@ import React from 'react'
  
  const Contact = () => {
    return (
-     <div className="min-h-screen px-4 ">
+     <div className="min-h-screen ">
        <ContactForm />
      </div>
    )

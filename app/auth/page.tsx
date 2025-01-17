@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import LoginButton from '@/components/LoginButton'
+import { HeroBackground } from '@/components/HeroBackground'
 
 export default function Auth() {
   const { data: session, status } = useSession()
@@ -34,9 +35,10 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen py-36 px-4" suppressHydrationWarning>
-      <div className="max-w-md mx-auto text-center">
-        <h1 className="text-3xl font-bold font-orbitron mb-6 bg-gradient-to-r from-vibrant-orange to-turquoise bg-clip-text text-transparent">
+    <div className="min-h-screen flex items-center justify-center relative" >
+      <HeroBackground />
+      <div className="max-w-md mx-auto text-center flex flex-col items-center justify-center absolute inset-0 opacity-100">
+        <h1 className="text-3xl mb-4 md:text-4xl font-bold font-orbitron bg-gradient-to-r from-[#FF4500] via-[#FF8C00] to-[#00CED1] bg-clip-text text-transparent">
           Sign in to Continue
         </h1>
         <p className="text-white/60 mb-8">

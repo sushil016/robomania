@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
         <Providers>
           <ThemeProvider>
-            <div className="min-h-screen relative">
+            <div className="min-h-screen relative antialiased">
               <HeroBackground />
               <Header />
               <main>{children}</main>
