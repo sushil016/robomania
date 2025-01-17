@@ -14,10 +14,12 @@ const authOptions: AuthOptions = {
     }),
   ],
   pages: {
-    signIn: '/auth'
+    signIn: '/auth',
+    error: '/auth/error'
   },
   callbacks: {
     async signIn({ user, account, profile }) {
+      console.log("Sign in attempt:", { user, account, profile });
       return true
     },
     async jwt({ token, user }) {
@@ -30,6 +32,7 @@ const authOptions: AuthOptions = {
       return token
     },
     async session({ session, token }) {
+      console.log("Session created:", { session, token });
       if (session?.user && token?.id) {
         session.user.id = token.id
       }
