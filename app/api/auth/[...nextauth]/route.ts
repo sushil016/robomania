@@ -13,13 +13,15 @@ const authOptions: AuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "select_account"
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code"
         }
       }
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "database",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
@@ -35,27 +37,11 @@ const authOptions: AuthOptions = {
       console.log("Sign in attempt:", { user, account, profile });
       return true;
     },
-    async jwt({ token, user, account }) {
-      if (account && user) {
-        token.accessToken = account.access_token;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      console.log("Session creation attempt:", { session, token });
-      if (session?.user) {
-        session.user.id = token.id as string;
-        // @ts-ignore
-        session.accessToken = token.accessToken;
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
       }
       return session;
-    },
-    async redirect({ url, baseUrl }) {
-      // Handle redirect after sign in
-      if (url.startsWith(baseUrl)) return url;
-      if (url.startsWith("/")) return baseUrl + url;
-      return baseUrl;
     }
   },
   debug: process.env.NODE_ENV === 'development',
