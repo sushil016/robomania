@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight, ChevronLeft, Loader2, Users, Bot, School } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { useUser } from 'hooks/useUser';
 
 type FormData = {
   teamName: string
@@ -36,7 +37,7 @@ export default function TeamRegistration() {
   const { data: session, status } = useSession()
   const [currentStep, setCurrentStep] = useState(1)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  // const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     teamName: '',
     institution: '',
@@ -93,8 +94,9 @@ export default function TeamRegistration() {
       }
     }
   }, [])
+  const { user, loading } = useUser()
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -139,7 +141,7 @@ export default function TeamRegistration() {
       return
     }
     
-    setLoading(true)
+    // setLoading(true)
 
     try {
       const registerResponse = await fetch('/api/register', {
@@ -232,7 +234,7 @@ export default function TeamRegistration() {
       RazorpayCheckout.open()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Payment initialization failed')
-      setLoading(false)
+      // setLoading(false)
     }
   }
 
@@ -248,6 +250,9 @@ export default function TeamRegistration() {
       ...prev,
       [name]: value
     }))
+  }
+  if (!user) {
+    return null // The hook will handle redirection
   }
 
   const handleMemberChange = (index: number, field: string, value: string) => {

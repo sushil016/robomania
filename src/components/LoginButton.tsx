@@ -14,9 +14,21 @@ export default function LoginButton() {
     try {
       setLoading(true)
       const result = await signIn('google', {
-        callbackUrl: '/',
-        redirect: true
+        redirect: false,
       })
+
+      if (result?.error) {
+        console.error('Sign in error:', result.error)
+        router.push('/auth/error')
+      } else {
+        // Fetch user data after successful sign in
+        const userResponse = await fetch('/api/user')
+        if (userResponse.ok) {
+          router.push('/')
+        } else {
+          router.push('/auth/error')
+        }
+      }
     } catch (error) {
       console.error('Sign in error:', error)
       router.push('/auth/error')

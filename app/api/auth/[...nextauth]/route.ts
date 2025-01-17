@@ -11,44 +11,39 @@ const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          prompt: "select_account",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
     }),
   ],
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  pages: {
-    signIn: '/auth',
-    error: '/auth/error',
-    signOut: '/auth'
-  },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (!user?.email) {
-        return false;
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
       }
-      console.log("Sign in attempt:", { user, account, profile });
-      return true;
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
     },
-    async session({ session, user }) {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        // @ts-ignore
+        session.accessToken = token.accessToken;
       }
       return session;
     }
   },
-  debug: process.env.NODE_ENV === 'development',
+  pages: {
+    signIn: '/auth',
+    error: '/auth/error',
+  },
   secret: process.env.NEXTAUTH_SECRET
 }
 
 const handler = NextAuth(authOptions)
-
-export const GET = handler
-export const POST = handler
+export { handler as GET, handler as POST }
