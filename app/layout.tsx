@@ -4,6 +4,7 @@ import { Inter, Orbitron } from 'next/font/google'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import Providers from '../components/Providers'
+import { HeroBackground } from '@/components/HeroBackground'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
@@ -23,7 +24,8 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
         <Providers>
           <ThemeProvider>
-            <div className="min-h-screen bg-grid">
+            <div className="min-h-screen relative">
+              <HeroBackground />
               <Header />
               <main>{children}</main>
               <Footer />

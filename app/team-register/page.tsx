@@ -483,8 +483,11 @@ export default function TeamRegistration() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-4xl mx-auto"
       >
+        
+
+        <div className="bg-black/50 backdrop-blur-sm p-8 rounded-2xl border border-white/10">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold font-orbitron mb-4 text-[#00CED1]">
             Register Your Team
           </h1>
           <p className="text-white/60">
@@ -515,8 +518,7 @@ export default function TeamRegistration() {
             </div>
           ))}
         </div>
-
-        <div className="bg-black/50 backdrop-blur-sm p-8 rounded-2xl border border-white/10">
+          
           <form onSubmit={handleSubmit}>
             {currentStep === 1 && renderStep1()}
             {currentStep === 2 && renderStep2()}

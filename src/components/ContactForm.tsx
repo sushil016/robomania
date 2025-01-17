@@ -49,19 +49,22 @@ export default function ContactForm() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-2xl mx-auto"
       >
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
-            Contact Us
-          </h1>
-          <p className="text-white/60">
-            Have questions? We'd love to hear from you.
-          </p>
+        <div className=" z-10">
+          
+          
         </div>
+        <div></div>
 
         <motion.form
           onSubmit={handleSubmit}
           className="space-y-6 bg-black/30 p-8 rounded-lg backdrop-blur-sm border border-white/10"
         >
+          <h1 className="text-4xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+            Contact Us
+          </h1> 
+          <p className="text-white/60">
+            Have questions? We'd love to hear from you.
+          </p>
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
               Name
