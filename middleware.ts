@@ -1,24 +1,35 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
-// Protect only registration routes
 export default withAuth(
   function middleware(req) {
+    const isAuth = !!req.auth;
+    const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
+
+    if (isAuthPage) {
+      if (isAuth) {
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+      return null;
+    }
+
+    if (!isAuth && req.nextUrl.pathname.startsWith('/team-register')) {
+      return NextResponse.redirect(new URL('/auth', req.url));
+    }
+
     return NextResponse.next();
   },
   {
     callbacks: {
-      authorized: ({ token, req }) => {
-        // Only require authentication for registration routes
-        if (req.nextUrl.pathname.startsWith('/registration')) {
-          return !!token;
-        }
-        return true;
-      }
-    }
+      authorized: ({ token }) => true // Let the middleware function handle the logic
+    },
+    pages: {
+      signIn: '/auth',
+      error: '/auth/error',
+    },
   }
 );
 
 export const config = {
-  matcher: ['/registration/:path*', '/team-register/:path*']
+  matcher: ['/auth', '/team-register/:path*']
 };

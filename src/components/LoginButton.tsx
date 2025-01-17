@@ -4,14 +4,31 @@ import { signIn } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function LoginButton() {
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const handleSignIn = async () => {
-    setLoading(true)
-    await signIn('google')
-    setLoading(false)
+    try {
+      setLoading(true)
+      const result = await signIn('google', {
+        redirect: false,
+        callbackUrl: '/'
+      })
+
+      if (result?.error) {
+        router.push('/auth/error')
+      } else if (result?.url) {
+        router.push(result.url)
+      }
+    } catch (error) {
+      console.error('Sign in error:', error)
+      router.push('/auth/error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

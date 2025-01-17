@@ -11,27 +11,34 @@ const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account"
+        }
+      }
     }),
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: '/auth',
-    error: '/auth/error'
+    error: '/auth/error',
+    signOut: '/auth'
   },
   callbacks: {
     async signIn({ user, account, profile }) {
+      if (!user?.email) {
+        return false;
+      }
       console.log("Sign in attempt:", { user, account, profile });
       return true;
     },
     async jwt({ token, user, account }) {
       if (account && user) {
-        return {
-          ...token,
-          accessToken: account.access_token,
-          id: user.id,
-        };
+        token.accessToken = account.access_token;
+        token.id = user.id;
       }
       return token;
     },
@@ -43,6 +50,12 @@ const authOptions: AuthOptions = {
         session.accessToken = token.accessToken;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Handle redirect after sign in
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith("/")) return baseUrl + url;
+      return baseUrl;
     }
   },
   debug: process.env.NODE_ENV === 'development',
