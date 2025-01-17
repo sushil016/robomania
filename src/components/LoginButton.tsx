@@ -1,6 +1,6 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 export default function LoginButton() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { data: session, update } = useSession()
 
   const handleSignIn = async () => {
     try {
@@ -21,12 +22,18 @@ export default function LoginButton() {
         console.error('Sign in error:', result.error)
         router.push('/auth/error')
       } else {
-        // Fetch user data after successful sign in
-        const userResponse = await fetch('/api/user')
-        if (userResponse.ok) {
-          router.push('/')
-        } else {
-          router.push('/auth/error')
+        // Wait for session to be updated
+        await update()
+        
+        if (session?.user?.email) {
+          const userResponse = await fetch(`/api/check-registration?email=${session.user.email}`)
+          const userData = await userResponse.json()
+
+          if (userResponse.ok && !userData.hasRegistered) {
+            router.push('/')
+          } else {
+            router.push('/team-register')
+          }
         }
       }
     } catch (error) {
