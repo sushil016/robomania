@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import LoginButton from '@/components/LoginButton'
@@ -10,7 +10,9 @@ import { HeroBackground } from '@/components/HeroBackground'
 export default function Auth() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mounted, setMounted] = useState(false)
+  const error = searchParams.get('error')
 
   useEffect(() => {
     setMounted(true)
@@ -35,9 +37,14 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative" >
+    <div className="min-h-screen flex items-center justify-center relative">
       <HeroBackground />
       <div className="max-w-md mx-auto text-center flex flex-col items-center justify-center absolute inset-0 opacity-100">
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-600 rounded-lg">
+            Authentication failed. Please try again.
+          </div>
+        )}
         <h1 className="text-3xl mb-4 md:text-4xl font-bold font-orbitron bg-gradient-to-r from-[#FF4500] via-[#FF8C00] to-[#00CED1] bg-clip-text text-transparent">
           Sign in to Continue
         </h1>

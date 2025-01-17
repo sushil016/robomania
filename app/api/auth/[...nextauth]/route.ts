@@ -13,6 +13,9 @@ const authOptions: AuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+  session: {
+    strategy: "jwt",
+  },
   pages: {
     signIn: '/auth',
     error: '/auth/error'
@@ -20,25 +23,29 @@ const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       console.log("Sign in attempt:", { user, account, profile });
-      return true
+      return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (account && user) {
         return {
           ...token,
-          id: user.id
-        }
+          accessToken: account.access_token,
+          id: user.id,
+        };
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      console.log("Session created:", { session, token });
-      if (session?.user && token?.id) {
-        session.user.id = token.id
+      console.log("Session creation attempt:", { session, token });
+      if (session?.user) {
+        session.user.id = token.id as string;
+        // @ts-ignore
+        session.accessToken = token.accessToken;
       }
-      return session
+      return session;
     }
   },
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET
 }
 
