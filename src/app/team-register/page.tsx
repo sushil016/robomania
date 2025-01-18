@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight, ChevronLeft, Loader2, Users, Bot, School } from 'lucide-react'
 import { useSession } from 'next-auth/react'
-import { useUser } from 'hooks/useUser';
+import { useUser } from '@/hooks/useUser';
 
 type FormData = {
   teamName: string
