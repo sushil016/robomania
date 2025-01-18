@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { Resend } from 'resend'
 import { sendRegistrationEmail } from '@/lib/email'
 
 const prisma = new PrismaClient()
+let resend: Resend | null = null
+
+try {
+  resend = new Resend(process.env.RESEND_API_KEY)
+} catch (error) {
+  console.error('Failed to initialize Resend:', error)
+}
 
 interface TeamMember {
   name: string
@@ -97,12 +105,15 @@ export async function POST(request: Request) {
 
         const payment = await paymentResponse.json()
 
-        // Send email
-        await sendRegistrationEmail({
-          teamName: team.teamName,
-          leaderName: team.leaderName,
-          leaderEmail: team.leaderEmail,
-        })
+        // Only try to send email if Resend is initialized
+        if (resend) {
+          try {
+            await sendRegistrationEmail(team)
+          } catch (emailError) {
+            console.error('Failed to send email:', emailError)
+            // Continue execution even if email fails
+          }
+        }
 
         return NextResponse.json({
           success: true,
