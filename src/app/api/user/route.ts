@@ -1,32 +1,38 @@
 import { NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(request: Request) {
   try {
-    const token = await getToken({ 
-      req: request as any,
-      secret: process.env.NEXTAUTH_SECRET,
-    })
-
-    if (!token?.email) {
+    const session = await auth()
+    
+    if (!session?.user?.email) {
       return NextResponse.json({ exists: false }, { status: 401 })
     }
 
     const user = await prisma.user.findUnique({
       where: {
-        email: token.email
+        email: session.user.email
       },
       select: {
-        id: true
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        team: {
+          select: {
+            id: true,
+            teamName: true,
+            status: true,
+            paymentStatus: true
+          }
+        }
       }
     })
 
-    return NextResponse.json({ exists: !!user })
+    return NextResponse.json({ user })
   } catch (error) {
-    console.error('Error checking user:', error)
-    return NextResponse.json({ exists: false }, { status: 500 })
+    console.error('Error fetching user:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-} 
+}

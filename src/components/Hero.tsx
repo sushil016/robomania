@@ -7,6 +7,7 @@ import { HeroBackground } from './HeroBackground'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import { SignInButton } from './SigninBtn'
 
 export default function Hero() {
   const { data: session } = useSession()
@@ -143,6 +144,9 @@ export default function Hero() {
             >
               Learn More
             </Link>
+            <div>
+           <SignInButton />
+            </div>
           </motion.div>
         </motion.div>
       </div>

@@ -4,8 +4,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { signIn } from 'next-auth/react'
+import { useSession, signIn } from 'next-auth/react'
 
 export default function LoginButton() {
   const [loading, setLoading] = useState(false)
@@ -23,7 +22,6 @@ export default function LoginButton() {
         console.error('Sign in error:', result.error)
         router.push('/auth/error')
       } else {
-        // Wait for session to be updated
         await update()
         
         if (session?.user?.email) {

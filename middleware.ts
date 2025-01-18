@@ -1,22 +1,17 @@
-import { NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
-import type { NextRequest } from 'next/server'
+import { auth } from "@/auth"
 
-export async function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/team-register')) {
-    const token = await getToken({
-      req: request as any,
-      secret: process.env.NEXTAUTH_SECRET,
-    })
+export default auth((req) => {
+  const isAuth = !!req.auth
+  const isOnTeamRegister = req.nextUrl.pathname.startsWith('/team-register')
 
-    if (!token) {
-      return NextResponse.redirect(new URL('/auth', request.url))
-    }
+  if (isOnTeamRegister && !isAuth) {
+    return Response.redirect(new URL('/auth', req.url))
   }
-
-  return NextResponse.next()
-}
+})
 
 export const config = {
-  matcher: ['/team-register/:path*']
+  matcher: [
+    '/team-register/:path*',
+    '/api/auth/:path*'
+  ]
 }
