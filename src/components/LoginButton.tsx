@@ -1,10 +1,11 @@
 'use client'
 
-import { signIn, useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 
 export default function LoginButton() {
   const [loading, setLoading] = useState(false)
@@ -26,10 +27,10 @@ export default function LoginButton() {
         await update()
         
         if (session?.user?.email) {
-          const userResponse = await fetch(`/api/check-registration?email=${session.user.email}`)
+          const userResponse = await fetch('/api/user')
           const userData = await userResponse.json()
 
-          if (userResponse.ok && !userData.hasRegistered) {
+          if (userResponse.ok && userData.exists) {
             router.push('/')
           } else {
             router.push('/team-register')

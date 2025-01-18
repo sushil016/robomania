@@ -6,62 +6,27 @@ const prisma = new PrismaClient()
 
 export async function GET(request: Request) {
   try {
-    // Get token directly without headers
     const token = await getToken({ 
       req: request as any,
       secret: process.env.NEXTAUTH_SECRET,
     })
 
     if (!token?.email) {
-      return NextResponse.json({ 
-        error: 'Unauthorized', 
-        debug: { token } 
-      }, { status: 401 })
+      return NextResponse.json({ exists: false }, { status: 401 })
     }
 
-    // Get user from database with retry logic
-    let user = null
-    let retries = 3
-
-    while (retries > 0 && !user) {
-      try {
-        user = await prisma.user.findUnique({
-          where: {
-            email: token.email
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            team: {
-              select: {
-                id: true,
-                teamName: true,
-                status: true,
-                paymentStatus: true
-              }
-            }
-          }
-        })
-        break
-      } catch (error) {
-        retries--
-        if (retries === 0) throw error
-        await new Promise(resolve => setTimeout(resolve, 1000))
+    const user = await prisma.user.findUnique({
+      where: {
+        email: token.email
+      },
+      select: {
+        id: true
       }
-    }
+    })
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({ user })
+    return NextResponse.json({ exists: !!user })
   } catch (error) {
-    console.error('Error fetching user:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
+    console.error('Error checking user:', error)
+    return NextResponse.json({ exists: false }, { status: 500 })
   }
 } 

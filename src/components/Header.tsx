@@ -35,7 +35,7 @@ export default function Header() {
     const checkRegistration = async () => {
       if (session?.user?.email) {
         try {
-          const response = await fetch(`/api/check-registration?email=${session.user.email}`)
+          const response = await fetch(`/api/check-registration?email=${session.user.email}`) || await fetch(`/api/user`)
           const data = await response.json()
           setHasRegistered(data.hasRegistered)
         } catch (error) {
