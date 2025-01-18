@@ -57,11 +57,11 @@ export default function TeamRegistration() {
     ]
   })
 
-  // useEffect(() => {
-  //   if (status === 'unauthenticated') {
-  //     router.replace('/auth')
-  //   }
-  // }, [status, router])
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/auth')
+    }
+  }, [status, router])
 
   // useEffect(() => {
   //   if (session) {
