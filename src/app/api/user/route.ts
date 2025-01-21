@@ -1,24 +1,28 @@
 import { NextResponse } from 'next/server'
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
+import { jwtVerify } from 'jose'
+import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
-    const session = await auth()
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ exists: false }, { status: 401 })
+    const cookiesList = request.headers.get('cookie')
+    const token = cookiesList?.split(';').find(c => c.trim().startsWith('auth-token='))?.split('=')[1]
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.JWT_SECRET)
+    )
+
     const user = await prisma.user.findUnique({
-      where: {
-        email: session.user.email
-      },
+      where: { id: payload.userId as string },
       select: {
         id: true,
         name: true,
         email: true,
-        image: true,
         team: {
           select: {
             id: true,
@@ -29,6 +33,10 @@ export async function GET(request: Request) {
         }
       }
     })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
     return NextResponse.json({ user })
   } catch (error) {

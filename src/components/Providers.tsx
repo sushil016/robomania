@@ -1,27 +1,11 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
-import { Component, useEffect, useState } from 'react'
+import { AuthProvider } from '@/contexts/AuthContext'
 
-export default function Providers({ 
-  children,
-  session = null
-}: { 
-  children: React.ReactNode,
-  session?: any
-}) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return null
-  }
-
-  return <SessionProvider session={session}>
-  {children}
-</SessionProvider>
-  
+export default function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  )
 } 

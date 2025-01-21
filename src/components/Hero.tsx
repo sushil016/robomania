@@ -6,11 +6,10 @@ import { motion } from 'framer-motion'
 import { HeroBackground } from './HeroBackground'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
-import { SignInButton } from './SigninBtn'
+import { Loader2, ArrowRight } from 'lucide-react'
 
 export default function Hero() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
@@ -48,7 +47,11 @@ export default function Hero() {
   }, [])
 
   const handleRegistrationClick = () => {
-    router.push('/team-register')
+    if (status === 'authenticated' && session) {
+      router.push('/team-register')
+    } else {
+      router.push('/auth/login')
+    }
   }
 
   if (!isClient) {
@@ -130,11 +133,12 @@ export default function Hero() {
               onClick={handleRegistrationClick}
               className="relative inline-flex group"
             >
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-vibrant-orange to-turquoise rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
               <span className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
                 <span className="text-white group-hover:text-white transition duration-200">
-                  Register Now
+                  {status === 'authenticated' ? 'Register Team' : 'Sign In & Register'}
                 </span>
+                <ArrowRight className="w-5 h-5 ml-2" />
               </span>
             </button>
             
@@ -145,7 +149,7 @@ export default function Hero() {
               Learn More
             </Link>
             <div>
-           <SignInButton />
+           
             </div>
           </motion.div>
         </motion.div>

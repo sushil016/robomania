@@ -1,33 +1,46 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
+import { getToken } from 'next-auth/jwt'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const email = searchParams.get('email')
-
-  if (!email) {
-    return NextResponse.json({ error: 'Email is required' }, { status: 400 })
-  }
-
   try {
+    const token = await getToken({ req: request as any })
+    if (!token?.email) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
     const team = await prisma.team.findFirst({
       where: {
-        userEmail: email
+        userEmail: token.email as string
       },
-      include: {
-        members: true
+      select: {
+        id: true,
+        teamName: true,
+        institution: true,
+        status: true,
+        paymentStatus: true,
+        contactEmail: true,
+        contactPhone: true,
+        leaderName: true,
+        leaderEmail: true,
+        leaderPhone: true,
+        robotName: true
       }
     })
 
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ message: 'Team not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ team })
+    return NextResponse.json({
+      success: true,
+      team
+    })
   } catch (error) {
     console.error('Failed to fetch team details:', error)
-    return NextResponse.json({ error: 'Failed to fetch team details' }, { status: 500 })
+    return NextResponse.json(
+      { message: 'Failed to fetch team details' },
+      { status: 500 }
+    )
   }
 } 

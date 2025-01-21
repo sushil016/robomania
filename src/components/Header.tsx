@@ -6,6 +6,7 @@ import { Menu, X, User, LogOut, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
+import { SignInButton } from './SignInButton'
 
 const navItems = [
   { name: 'Home', href: '/' },
@@ -35,16 +36,26 @@ export default function Header() {
     const checkRegistration = async () => {
       if (session?.user?.email) {
         try {
-          const response = await fetch(`/api/check-registration?email=${session.user.email}`) || await fetch(`/api/user`)
+          const response = await fetch('/api/team-details')
           const data = await response.json()
-          setHasRegistered(data.hasRegistered)
+          setHasRegistered(response.ok && data.team)
         } catch (error) {
           console.error('Failed to check registration status:', error)
+          setHasRegistered(false)
         }
       }
     }
-    checkRegistration()
-  }, [session])
+
+    if (status === 'authenticated') {
+      checkRegistration()
+    }
+  }, [session, status])
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' })
+    setIsDropdownOpen(false)
+    setIsMenuOpen(false)
+  }
 
   return (
     <motion.header
@@ -94,25 +105,25 @@ export default function Header() {
             </motion.ul>
 
             {/* User Menu */}
-            {session?.user && (
+            {status === 'authenticated' && session?.user ? (
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 text-white hover:text-[#00CED1] transition-colors duration-200"
+                  className="flex items-center space-x-2 text-white"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden">
-                    {session.user.image ? (
-                      <Image
-                        src={session.user.image}
-                        alt="Profile"
-                        width={32}
-                        height={32}
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <User className="w-full h-full p-1" />
-                    )}
-                  </div>
+                  {session.user.image ? (
+                    <Image
+                      src={session.user.image}
+                      alt="Profile"
+                      width={32}
+                      height={32}
+                      className="rounded-full border-2 border-white/10"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF4500] to-[#00CED1] flex items-center justify-center">
+                      {session.user.name?.[0] || session.user.email?.[0]}
+                    </div>
+                  )}
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
@@ -126,11 +137,11 @@ export default function Header() {
                     >
                       {hasRegistered ? (
                         <Link
-                          href="/team-register/details"
+                          href="/dashboard"
                           className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          View Registration
+                          Dashboard
                         </Link>
                       ) : (
                         <Link
@@ -138,14 +149,11 @@ export default function Header() {
                           className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          Register for RoboMania
+                          Register Team
                         </Link>
                       )}
                       <button
-                        onClick={() => {
-                          signOut()
-                          setIsDropdownOpen(false)
-                        }}
+                        onClick={handleSignOut}
                         className="w-full text-left px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5 flex items-center space-x-2"
                       >
                         <LogOut className="w-4 h-4" />
@@ -155,6 +163,8 @@ export default function Header() {
                   )}
                 </AnimatePresence>
               </div>
+            ) : (
+              <SignInButton />
             )}
           </nav>
 
