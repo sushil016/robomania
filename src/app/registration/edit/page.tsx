@@ -92,6 +92,9 @@ export default function EditRegistration() {
               initialData={{
                 teamName: teamDetails.teamName,
                 institution: teamDetails.institution,
+                leaderName: teamDetails.members[0].name,
+                leaderEmail: teamDetails.members[0].email,
+                leaderPhone: teamDetails.members[0].phone,
                 robotName: teamDetails.robotDetails.name,
                 robotWeight: teamDetails.robotDetails.weight,
                 robotDimensions: teamDetails.robotDetails.dimensions,
