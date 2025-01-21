@@ -13,6 +13,7 @@ export default function Hero() {
   
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
+  const [hasRegistered, setHasRegistered] = useState(false)
   const [timeLeft, setTimeLeft] = useState({
     days: '--',
     hours: '--',
@@ -46,9 +47,38 @@ export default function Hero() {
     return () => clearInterval(timer)
   }, [])
 
-  const handleRegistrationClick = () => {
+  useEffect(() => {
+    const checkRegistration = async () => {
+      if (session?.user?.email) {
+        try {
+          const response = await fetch('/api/team-details')
+          const data = await response.json()
+          setHasRegistered(response.ok && data.team)
+        } catch (error) {
+          console.error('Failed to check registration:', error)
+          setHasRegistered(false)
+        }
+      }
+    }
+
+    if (status === 'authenticated') {
+      checkRegistration()
+    }
+  }, [session, status])
+
+  const handleRegistrationClick = async () => {
     if (status === 'authenticated' && session) {
-      router.push('/team-register')
+      try {
+        const response = await fetch('/api/team-details')
+        if (response.ok) {
+          router.push('/registration/details')
+        } else {
+          router.push('/team-register')
+        }
+      } catch (error) {
+        console.error('Error checking registration:', error)
+        router.push('/team-register')
+      }
     } else {
       router.push('/auth/login')
     }
@@ -136,7 +166,9 @@ export default function Hero() {
               <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
               <span className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
                 <span className="text-white group-hover:text-white transition duration-200">
-                  {status === 'authenticated' ? 'Register Team' : 'Sign In & Register'}
+                  {status === 'authenticated' 
+                    ? (hasRegistered ? 'View Registration' : 'Register Team') 
+                    : 'Sign In & Register'}
                 </span>
                 <ArrowRight className="w-5 h-5 ml-2 text-white" />
               </span>
@@ -148,9 +180,6 @@ export default function Hero() {
             >
               Learn More
             </Link>
-            <div>
-           
-            </div>
           </motion.div>
         </motion.div>
       </div>

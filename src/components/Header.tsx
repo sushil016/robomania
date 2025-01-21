@@ -137,11 +137,11 @@ export default function Header() {
                     >
                       {hasRegistered ? (
                         <Link
-                          href="/dashboard"
+                          href="/registration/details"
                           className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          Dashboard
+                          View Registration
                         </Link>
                       ) : (
                         <Link
