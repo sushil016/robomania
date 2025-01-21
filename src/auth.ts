@@ -24,22 +24,15 @@ export const {
       },
     }),
   ],
-  pages: {
-    signIn: '/auth/login',
-    error: '/auth/error',
-  },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "github") {
-        return true // Allow GitHub sign in
-      }
-      return true
-    },
     async session({ session, user }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = user.id
+        if (session.user.email === 'sahanisushil325@gmail.com') {
+          session.user.isAdmin = true
+        }
       }
-      return session;
+      return session
     },
     async jwt({ token, account, profile }) {
       if (account) {
@@ -48,5 +41,8 @@ export const {
       return token
     }
   },
-  debug: process.env.NODE_ENV === 'development',
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/error',
+  },
 }) 

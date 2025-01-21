@@ -1,30 +1,24 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getToken } from 'next-auth/jwt'
+import { auth } from '@/auth'
 
 export async function GET(request: Request) {
   try {
-    const token = await getToken({ req: request as any })
-    if (!token?.email) {
+    const session = await auth()
+    if (!session?.user?.email) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
     const team = await prisma.team.findFirst({
       where: {
-        userEmail: token.email as string
+        members: {
+          some: {
+            email: session.user.email
+          }
+        }
       },
-      select: {
-        id: true,
-        teamName: true,
-        institution: true,
-        status: true,
-        paymentStatus: true,
-        contactEmail: true,
-        contactPhone: true,
-        leaderName: true,
-        leaderEmail: true,
-        leaderPhone: true,
-        robotName: true
+      include: {
+        members: true
       }
     })
 
@@ -32,10 +26,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Team not found' }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      team
-    })
+    return NextResponse.json(team)
   } catch (error) {
     console.error('Failed to fetch team details:', error)
     return NextResponse.json(

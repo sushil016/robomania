@@ -1,24 +1,46 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
-const prisma = new PrismaClient()
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const session = await auth()
+    console.log('Session:', session?.user?.email)
+
+    if (!session?.user?.email || session.user.email !== 'sahanisushil325@gmail.com') {
+      return NextResponse.json({ 
+        success: false,
+        message: 'Unauthorized',
+        teams: [] 
+      }, { status: 401 })
+    }
+
     const teams = await prisma.team.findMany({
-      include: {
-        members: true,
+      select: {
+        id: true,
+        teamName: true,
+        institution: true,
+        status: true,
+        paymentStatus: true,
+        createdAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
-      },
+        createdAt: 'desc'
+      }
     })
 
-    return NextResponse.json(teams)
+    console.log('Teams found:', teams.length)
+
+    return NextResponse.json({
+      success: true,
+      teams: teams
+    })
   } catch (error) {
-    return NextResponse.json(
-      { message: 'Failed to fetch teams' },
-      { status: 500 }
-    )
+    console.error('Teams API error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      teams: [],
+      message: error instanceof Error ? error.message : 'Failed to fetch teams'
+    }, { status: 500 })
   }
 } 

@@ -5,9 +5,11 @@ import { Download } from 'lucide-react'
 interface ExportButtonProps {
   data: any[]
   filename: string
+  className?: string
+  children?: React.ReactNode
 }
 
-export function ExportButton({ data, filename }: ExportButtonProps) {
+export function ExportButton({ data, filename, className, children }: ExportButtonProps) {
   const exportToCSV = () => {
     const headers = Object.keys(data[0]).join(',')
     const csvData = data.map(row => 
@@ -29,10 +31,9 @@ export function ExportButton({ data, filename }: ExportButtonProps) {
   return (
     <button
       onClick={exportToCSV}
-      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+      className={`flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 ${className || ''}`}
     >
-      <Download className="w-4 h-4" />
-      Export CSV
+      {children}
     </button>
   )
 } 

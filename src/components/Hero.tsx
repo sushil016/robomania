@@ -138,13 +138,13 @@ export default function Hero() {
                 <span className="text-white group-hover:text-white transition duration-200">
                   {status === 'authenticated' ? 'Register Team' : 'Sign In & Register'}
                 </span>
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2 text-white" />
               </span>
             </button>
             
             <Link
               href="/event-details"
-              className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition duration-200"
+              className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition duration-200"
             >
               Learn More
             </Link>

@@ -1,120 +1,73 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-import { ExportButton } from './components/ExportButton'
-import { AnalyticsChart } from './components/AnalyticsChart'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DataTable } from '@/components/ui/data-table'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { Loader2, LayoutDashboard } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function AdminDashboard() {
-  const [teams, setTeams] = useState([])
-  const [stats, setStats] = useState({
-    totalTeams: 0,
-    pendingPayments: 0,
-    totalRevenue: 0,
-  })
-  const [analyticsData, setAnalyticsData] = useState(null)
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      fetchDashboardData(),
-      fetchAnalytics()
-    ])
-  }, [])
+    if (status === 'loading') return
 
-  const fetchDashboardData = async () => {
-    try {
-      const [teamsRes, statsRes] = await Promise.all([
-        fetch('/api/admin/teams'),
-        fetch('/api/admin/stats')
-      ])
-      
-      const teamsData = await teamsRes.json()
-      const statsData = await statsRes.json()
-      
-      setTeams(teamsData)
-      setStats(statsData)
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
+    if (!session?.user?.isAdmin) {
+      router.push('/')
+      return
     }
+    setLoading(false)
+  }, [status, session, router])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    )
   }
 
-  const fetchAnalytics = async () => {
-    const res = await fetch('/api/admin/analytics')
-    const data = await res.json()
-    setAnalyticsData(data)
+  if (!session?.user?.isAdmin) {
+    return null
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-        <ExportButton 
-          data={teams} 
-          filename="robomania-teams-export" 
-        />
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center space-y-4"
+      >
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-cyan-500 bg-clip-text text-transparent">
+          Welcome to Admin Portal
+        </h1>
+        <p className="text-neutral-400 text-lg">
+          Manage teams, track registrations, and monitor event progress
+        </p>
+      </motion.div>
 
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Teams</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.totalTeams}</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending Payments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.pendingPayments}</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">₹{stats.totalRevenue}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        onClick={() => router.push('/admin/dashboard')}
+        className="group relative inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-lg overflow-hidden transition-all duration-300 hover:scale-105"
+      >
+        <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:opacity-0" />
+        <LayoutDashboard className="w-5 h-5" />
+        <span className="font-semibold">Go to Dashboard</span>
+      </motion.button>
 
-      {analyticsData && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Analytics</h2>
-          <AnalyticsChart data={analyticsData} />
-        </div>
-      )}
-
-      <Tabs defaultValue="teams">
-        <TabsList>
-          <TabsTrigger value="teams">Teams</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="contacts">Contact Messages</TabsTrigger>
-          <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="teams">
-          <DataTable 
-            data={teams}
-            columns={[
-              { accessorKey: 'teamName', header: 'Team Name' },
-              { accessorKey: 'institution', header: 'Institution' },
-              { accessorKey: 'status', header: 'Status' },
-              { accessorKey: 'paymentStatus', header: 'Payment' },
-            ]}
-          />
-        </TabsContent>
-        
-        {/* Add other tabs content */}
-      </Tabs>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="text-neutral-500 text-sm"
+      >
+        Logged in as {session.user.email}
+      </motion.div>
     </div>
   )
 } 

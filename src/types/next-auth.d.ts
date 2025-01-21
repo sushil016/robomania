@@ -7,13 +7,17 @@ declare module 'next-auth' {
 
   interface Session {
     user: {
-      role?: string
-    } & DefaultSession['user']
+      id: string
+      email: string
+      name?: string | null
+      image?: string | null
+      isAdmin?: boolean
+    }
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    role?: string
+    provider?: string
   }
 } 

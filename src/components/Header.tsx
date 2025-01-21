@@ -152,6 +152,22 @@ export default function Header() {
                           Register Team
                         </Link>
                       )}
+                      {session.user.isAdmin && (
+                        <Link
+                          href="/admin"
+                          className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Admin
+                        </Link>
+                      )}
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        Profile
+                      </Link>
                       <button
                         onClick={handleSignOut}
                         className="w-full text-left px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5 flex items-center space-x-2"
@@ -219,6 +235,22 @@ export default function Header() {
                       Register for RoboMania
                     </Link>
                   )}
+                  {session.user.isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <Link
+                    href="/profile"
+                    className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
                   <button
                     onClick={() => {
                       signOut()

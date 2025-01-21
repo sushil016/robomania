@@ -1,46 +1,27 @@
 import { NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
-import { cookies } from 'next/headers'
-import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 export async function GET(request: Request) {
   try {
-    const cookiesList = request.headers.get('cookie')
-    const token = cookiesList?.split(';').find(c => c.trim().startsWith('auth-token='))?.split('=')[1]
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await auth()
+    
+    if (!session?.user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(process.env.JWT_SECRET)
-    )
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId as string },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        team: {
-          select: {
-            id: true,
-            teamName: true,
-            status: true,
-            paymentStatus: true
-          }
-        }
+    return NextResponse.json({
+      user: {
+        email: session.user.email,
+        name: session.user.name,
+        image: session.user.image,
+        isAdmin: session.user.email === 'sahanisushil325@gmail.com'
       }
     })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({ user })
   } catch (error) {
-    console.error('Error fetching user:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Failed to fetch user:', error)
+    return NextResponse.json(
+      { message: 'Failed to fetch user' },
+      { status: 500 }
+    )
   }
 }

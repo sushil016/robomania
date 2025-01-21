@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Loader2, Users, Robot, Trophy, Clock } from 'lucide-react'
+import { Loader2, Users, Bot, Trophy, Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface TeamDetails {
@@ -93,7 +93,7 @@ export default function Dashboard() {
           <StatusCard
             title="Robot Status"
             value="In Development"
-            icon={Robot}
+            icon={Bot}
             color="from-orange-500 to-red-500"
           />
         </div>
