@@ -20,6 +20,7 @@ export default function Hero() {
     minutes: '--',
     seconds: '--',
   })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -67,20 +68,23 @@ export default function Hero() {
   }, [session, status])
 
   const handleRegistrationClick = async () => {
-    if (status === 'authenticated' && session) {
-      try {
+    setLoading(true)
+    try {
+      if (status === 'authenticated') {
+        // Check if user has already registered
         const response = await fetch('/api/team-details')
         if (response.ok) {
           router.push('/registration/details')
         } else {
           router.push('/team-register')
         }
-      } catch (error) {
-        console.error('Error checking registration:', error)
-        router.push('/team-register')
+      } else {
+        router.push('/auth/login')
       }
-    } else {
-      router.push('/auth/login')
+    } catch (error) {
+      console.error('Navigation error:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -161,16 +165,26 @@ export default function Hero() {
           >
             <button
               onClick={handleRegistrationClick}
+              disabled={loading}
               className="relative inline-flex group"
             >
               <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
               <span className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
-                <span className="text-white group-hover:text-white transition duration-200">
-                  {status === 'authenticated' 
-                    ? (hasRegistered ? 'View Registration' : 'Register Team') 
-                    : 'Sign In & Register'}
-                </span>
-                <ArrowRight className="w-5 h-5 ml-2 text-white" />
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    <span className="text-white">Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-white group-hover:text-white transition duration-200">
+                      {status === 'authenticated' 
+                        ? (hasRegistered ? 'View Registration' : 'Register Team') 
+                        : 'Sign In & Register'}
+                    </span>
+                    <ArrowRight className="w-5 h-5 ml-2 text-white" />
+                  </>
+                )}
               </span>
             </button>
             

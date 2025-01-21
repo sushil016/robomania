@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { Resend } from 'resend'
-import { sendRegistrationEmail } from '@/lib/email'
+import { sendRegistrationEmail, sendEmail, emailTemplates } from '@/lib/email'
 
 const prisma = new PrismaClient()
 let resend: Resend | null = null
@@ -109,6 +109,10 @@ export async function POST(request: Request) {
         if (resend) {
           try {
             await sendRegistrationEmail(team)
+            await sendEmail({
+              to: data.contactEmail,
+              ...emailTemplates.teamRegistration(data.teamName)
+            })
           } catch (emailError) {
             console.error('Failed to send email:', emailError)
             // Continue execution even if email fails
