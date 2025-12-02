@@ -1,14 +1,8 @@
-'use client'
-
+import EventDetailsPage from '@/components/EventsSection'
 import React from 'react'
-import { motion } from 'framer-motion'
 
-const EventDetails = () => {
+export default function EventPage() {
   return (
-    <div className="min-h-screen py-36 px-4 bg-transparent">
-      
-    </div>
+    <EventDetailsPage />
   )
 }
-
-export default EventDetails

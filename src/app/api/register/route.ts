@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { Resend } from 'resend'
-import { sendRegistrationEmail, sendEmail, emailTemplates } from '@/lib/email'
+import { sendRegistrationEmail } from '@/lib/email'
+import { supabaseAdmin } from '@/lib/supabase'
 
-const prisma = new PrismaClient()
 let resend: Resend | null = null
 
 try {
@@ -38,114 +37,172 @@ interface RegistrationData {
 export async function POST(request: Request) {
   try {
     if (!request.body) {
-      return NextResponse.json({
-        success: false,
-        message: 'No data provided'
-      }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'No data provided' }, { status: 400 })
     }
 
     const data = await request.json() as RegistrationData
     console.log('Received data:', data)
 
-    // Basic validation
     if (!data.teamName || !data.institution || !data.members) {
-      return NextResponse.json({
-        success: false,
-        message: 'Missing required fields'
-      }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 })
     }
 
-    try {
-      // Create team with members
-      const team = await prisma.team.create({
-        data: {
-          teamName: data.teamName,
+    // Check if user already has a team (by email)
+    const { data: existingTeam, error: existingError } = await supabaseAdmin
+      .from('teams')
+      .select('*')
+      .eq('user_email', data.userEmail)
+      .single()
+
+    // If team exists for this user, update it instead of creating new
+    if (existingTeam && !existingError) {
+      console.log('Team already exists for user, updating:', existingTeam.id)
+      
+      const { data: updatedTeam, error: updateError } = await supabaseAdmin
+        .from('teams')
+        .update({
+          team_name: data.teamName,
           institution: data.institution,
-          contactEmail: data.contactEmail,
-          contactPhone: data.contactPhone,
-          leaderName: data.leaderName,
-          leaderEmail: data.leaderEmail,
-          leaderPhone: data.leaderPhone,
-          robotName: data.robotName,
-          robotWeight: parseFloat(data.robotWeight.toString()),
-          robotDimensions: data.robotDimensions,
-          weaponType: data.weaponType,
-          status: 'PENDING',
-          paymentStatus: 'PENDING',
-          user: {
-            connect: {
-              email: data.userEmail
-            }
-          },
-          members: {
-            create: data.members.map((member) => ({
-              name: member.name,
-              email: member.email,
-              phone: member.phone,
-              role: member.role
-            }))
-          }
-        }
-      })
+          leader_name: data.leaderName,
+          leader_email: data.leaderEmail,
+          leader_phone: data.leaderPhone,
+          contact_email: data.contactEmail,
+          contact_phone: data.contactPhone,
+          robot_name: data.robotName,
+          robot_weight: data.robotWeight,
+          robot_dimensions: data.robotDimensions,
+          weapon_type: data.weaponType
+        })
+        .eq('id', existingTeam.id)
+        .select()
+        .single()
 
-      if (!team) {
-        return NextResponse.json({
-          success: false,
-          message: 'Failed to create team'
-        }, { status: 500 })
+      if (updateError) {
+        console.error('Failed to update team:', updateError)
+        return NextResponse.json({ success: false, message: 'Failed to update team', error: updateError.message }, { status: 500 })
       }
 
-      try {
-        // Initialize payment
-        const paymentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ teamId: team.id }),
-        })
+      // Update team members - delete old and insert new
+      await supabaseAdmin.from('team_members').delete().eq('team_id', existingTeam.id)
+      
+      if (data.members && data.members.length > 0) {
+        const membersToInsert = data.members
+          .filter(m => m.name && m.email)
+          .map(member => ({
+            team_id: existingTeam.id,
+            name: member.name,
+            email: member.email,
+            phone: member.phone || '',
+            role: member.role || 'Member'
+          }))
 
-        const payment = await paymentResponse.json()
-
-        // Only try to send email if Resend is initialized
-        if (resend) {
-          try {
-            await sendRegistrationEmail(team)
-            await sendEmail({
-              to: data.contactEmail,
-              ...emailTemplates.teamRegistration(data.teamName)
-            })
-          } catch (emailError) {
-            console.error('Failed to send email:', emailError)
-            // Continue execution even if email fails
-          }
+        if (membersToInsert.length > 0) {
+          await supabaseAdmin.from('team_members').insert(membersToInsert)
         }
-
-        return NextResponse.json({
-          success: true,
-          team,
-          payment
-        })
-      } catch (paymentError) {
-        // If payment fails, return team data with error
-        return NextResponse.json({
-          success: false,
-          team,
-          message: 'Team created but payment initialization failed'
-        }, { status: 500 })
       }
-    } catch (dbError) {
-      // Handle database errors
-      const errorMessage = dbError instanceof Error ? dbError.message : 'Failed to process registration'
+
       return NextResponse.json({
-        success: false,
-        message: errorMessage
-      }, { status: 500 })
+        success: true,
+        message: 'Team updated successfully',
+        team: { id: updatedTeam.id, teamName: updatedTeam.team_name, status: updatedTeam.status, paymentStatus: updatedTeam.payment_status },
+        isExisting: true
+      })
     }
+
+    // Check if user exists in profiles
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', data.userEmail)
+      .single()
+
+    if (profileError || !profile) {
+      console.log('Profile not found, creating one for:', data.userEmail)
+      const { error: createProfileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({ email: data.userEmail, name: data.leaderName || data.teamName })
+
+      if (createProfileError) {
+        console.error('Failed to create profile:', createProfileError)
+      }
+    }
+
+    // Create team in database with DRAFT status (payment pending)
+    const { data: team, error: teamError } = await supabaseAdmin
+      .from('teams')
+      .insert({
+        user_email: data.userEmail,
+        team_name: data.teamName,
+        institution: data.institution,
+        leader_name: data.leaderName,
+        leader_email: data.leaderEmail,
+        leader_phone: data.leaderPhone,
+        contact_email: data.contactEmail,
+        contact_phone: data.contactPhone,
+        robot_name: data.robotName,
+        robot_weight: data.robotWeight,
+        robot_dimensions: data.robotDimensions,
+        weapon_type: data.weaponType,
+        status: 'PENDING',
+        payment_status: 'PENDING'
+      })
+      .select()
+      .single()
+
+    if (teamError) {
+      console.error('Database error:', teamError)
+      return NextResponse.json({ success: false, message: 'Failed to register team', error: teamError.message }, { status: 500 })
+    }
+
+    // Insert team members into separate table
+    if (data.members && data.members.length > 0) {
+      const membersToInsert = data.members
+        .filter(m => m.name && m.email) // Only insert valid members
+        .map(member => ({
+          team_id: team.id,
+          name: member.name,
+          email: member.email,
+          phone: member.phone || '',
+          role: member.role || 'Member'
+        }))
+
+      if (membersToInsert.length > 0) {
+        const { error: membersError } = await supabaseAdmin
+          .from('team_members')
+          .insert(membersToInsert)
+
+        if (membersError) {
+          console.error('Failed to insert team members:', membersError)
+          // Don't fail the whole registration, just log the error
+        }
+      }
+    }
+
+    // Send confirmation email
+    try {
+      if (resend && data.contactEmail) {
+        await sendRegistrationEmail({
+          teamName: data.teamName,
+          leaderName: data.leaderName,
+          leaderEmail: data.contactEmail
+        })
+        console.log('Registration email sent to:', data.contactEmail)
+      }
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Team registered successfully',
+      team: { id: team.id, teamName: team.team_name, status: team.status }
+    })
   } catch (error) {
-    // Handle request parsing errors
-    const errorMessage = error instanceof Error ? error.message : 'Invalid request data'
+    console.error('Registration error:', error)
     return NextResponse.json({
       success: false,
-      message: errorMessage
-    }, { status: 400 })
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
-} 
+}

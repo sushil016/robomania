@@ -3,6 +3,8 @@ import './globals.css'
 import { Inter, Orbitron } from 'next/font/google'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import Sidebar from '@/components/Sidebar'
+import SocialSidebar from '@/components/SocialSidebar'
 import Providers from '../components/Providers'
 import { HeroBackground } from '@/components/HeroBackground'
 import { SessionProvider } from 'next-auth/react'
@@ -33,6 +35,8 @@ export default async function RootLayout({
               <ThemeProvider>
                 <div className="min-h-screen relative antialiased">
                   <HeroBackground />
+                  <Sidebar />
+                  <SocialSidebar />
                   <Header />
                   <main>{children}</main>
                   <Footer />

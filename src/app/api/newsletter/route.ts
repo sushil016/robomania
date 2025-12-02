@@ -1,47 +1,59 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: Request) {
   try {
     const { email } = await request.json()
 
-    if (!email) {
-      return NextResponse.json({
-        success: false,
-        message: 'Email is required'
-      }, { status: 400 })
+    if (!email || !email.includes('@')) {
+      return NextResponse.json(
+        { error: 'Valid email is required' },
+        { status: 400 }
+      )
     }
 
     // Check if already subscribed
-    const existing = await prisma.newsletter.findUnique({
-      where: { email }
-    })
+    const { data: existing } = await supabaseAdmin
+      .from('newsletter')
+      .select('*')
+      .eq('email', email)
+      .single()
 
     if (existing) {
-      return NextResponse.json({
-        success: false,
-        message: 'Email already subscribed'
-      }, { status: 400 })
+      return NextResponse.json(
+        { message: 'You are already subscribed to our newsletter!' },
+        { status: 200 }
+      )
     }
 
-    const subscription = await prisma.newsletter.create({
-      data: {
+    // Subscribe
+    const { data, error } = await supabaseAdmin
+      .from('newsletter')
+      .insert({
         email,
         active: true
-      }
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Newsletter subscription error:', error)
+      return NextResponse.json(
+        { error: 'Failed to subscribe' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      subscription
+      message: 'Successfully subscribed to newsletter!',
+      data
     })
   } catch (error) {
     console.error('Newsletter subscription error:', error)
-    return NextResponse.json({
-      success: false,
-      message: 'Failed to subscribe to newsletter'
-    }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to subscribe' },
+      { status: 500 }
+    )
   }
-} 
+}

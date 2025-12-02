@@ -53,7 +53,7 @@ export default function RegistrationDetails() {
 
   return (
     <div className="min-h-screen pt-24 px-4">
-      <div className="max-w-4xl mx-auto bg-black/50 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+      <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-gray-300">
         <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
           Registration Details
         </h1>

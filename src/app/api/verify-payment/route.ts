@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 import crypto from 'crypto'
 import { sendStatusUpdateEmail } from '@/lib/email'
 
@@ -23,46 +23,59 @@ export async function POST(request: Request) {
 
     if (expectedSignature === signature) {
       // Update team status
-      const team = await prisma.team.update({
-        where: { id: teamId },
-        data: {
-          paymentStatus: 'COMPLETED',
+      const { data: team, error: updateError } = await supabaseAdmin
+        .from('teams')
+        .update({
+          payment_status: 'COMPLETED',
           status: 'APPROVED',
-          paymentId: paymentId,
-          paymentDate: new Date()
-        },
-        include: {
-          members: true // Include members to get leader details
-        }
-      })
+          payment_id: paymentId,
+          payment_date: new Date().toISOString()
+        })
+        .eq('id', teamId)
+        .select('*, team_members(*)')
+        .single()
 
-      // Send success email using the existing template
-      await sendStatusUpdateEmail({
-        teamName: team.teamName,
-        leaderName: team.leaderName,
-        leaderEmail: team.leaderEmail,
-        status: 'Payment Completed',
-        message: `Your payment of ₹200 has been successfully processed. Your team is now fully registered for RoboMania 2025!`
-      })
+      if (updateError) {
+        console.error('Failed to update team:', updateError)
+        return NextResponse.json({ error: 'Failed to update payment status' }, { status: 500 })
+      }
+
+      // Send success email
+      if (team) {
+        try {
+          await sendStatusUpdateEmail({
+            teamName: team.team_name,
+            leaderName: team.leader_name,
+            leaderEmail: team.leader_email,
+            status: 'Payment Completed',
+            message: `Your payment of ₹200 has been successfully processed. Your team is now fully registered for RoboMania 2025!`
+          })
+        } catch (emailError) {
+          console.error('Failed to send email:', emailError)
+        }
+      }
 
       return NextResponse.json({ success: true, team })
     } else {
       // Payment failed
-      const team = await prisma.team.findUnique({
-        where: { id: teamId },
-        include: {
-          members: true
-        }
-      })
+      const { data: team } = await supabaseAdmin
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .single()
       
       if (team) {
-        await sendStatusUpdateEmail({
-          teamName: team.teamName,
-          leaderName: team.leaderName,
-          leaderEmail: team.leaderEmail,
-          status: 'Payment Failed',
-          message: 'Your payment was unsuccessful. Please try again from your registration details page.'
-        })
+        try {
+          await sendStatusUpdateEmail({
+            teamName: team.team_name,
+            leaderName: team.leader_name,
+            leaderEmail: team.leader_email,
+            status: 'Payment Failed',
+            message: 'Your payment was unsuccessful. Please try again from your registration details page.'
+          })
+        } catch (emailError) {
+          console.error('Failed to send email:', emailError)
+        }
       }
 
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -71,4 +84,4 @@ export async function POST(request: Request) {
     console.error('Payment verification error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
-} 
+}

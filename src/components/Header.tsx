@@ -2,26 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Menu, X, User, LogOut, ChevronDown } from 'lucide-react'
+import { Menu, X, LogOut } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import { SignInButton } from './SignInButton'
-
-const navItems = [
-  { name: 'Home', href: '/' },
-  { name: 'Event Details', href: '/event-details' },
-  { name: 'Live Updates', href: '/live-updates' },
-  { name: 'Media Gallery', href: '/media-gallery' },
-  { name: 'Contact Us', href: '/contact' },
-]
+import { useRouter } from 'next/navigation'
 
 export default function Header() {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [hasRegistered, setHasRegistered] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,31 +23,12 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Check if user has registered
-  useEffect(() => {
-    const checkRegistration = async () => {
-      if (session?.user?.email) {
-        try {
-          const response = await fetch('/api/team-details')
-          const data = await response.json()
-          setHasRegistered(response.ok && data.team)
-        } catch (error) {
-          console.error('Failed to check registration status:', error)
-          setHasRegistered(false)
-        }
-      }
-    }
+  // const handleSignOut = async () => {
+  //   await signOut({ callbackUrl: '/' })
+  //   setIsMenuOpen(false)
+  // }
 
-    if (status === 'authenticated') {
-      checkRegistration()
-    }
-  }, [session, status])
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/' })
-    setIsDropdownOpen(false)
-    setIsMenuOpen(false)
-  }
 
   return (
     <motion.header
@@ -63,126 +36,55 @@ export default function Header() {
       animate={{ y: 0 }}
       className={`fixed w-full z-50 transition-all duration-300 px-4 sm:px-6 lg:px-8 pt-6`}
     >
-      <div className={`max-w-7xl mx-auto rounded-2xl transition-all duration-300 ${
-        isScrolled ? 'bg-black/80 backdrop-blur-sm' : 'bg-black/40'
+      <div className={`max-w-6xl mx-auto rounded-2xl transition-all duration-300 ${
+        isScrolled ? 'bg-white/10 backdrop-blur-md' : 'bg-transparent'
       }`}>
-        <div className="flex items-center justify-between h-16 px-4">
-          {/* Logo */}
+        <div className="flex items-center justify-between h-16 px-4 md:px-6">
+          {/* Left: IRL Logo */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
             className="flex-shrink-0"
           >
-            <Link href="/" className="text-2xl font-bold font-orbitron bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+            <Link href="/" className="flex items-center">
+              {/* Replace with actual IRL logo once added to public folder */}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#FF4500] to-[#00CED1] flex items-center justify-center text-white font-bold">
+                IRL
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Center: RoboMania Logo - Hidden on mobile */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="absolute left-[41%] transform -translate-x-1/2 hidden md:block"
+          >
+            <Link href="/" className="text-2xl font-bold font-orbitron bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent whitespace-nowrap">
               RoboMania 2025
             </Link>
           </motion.div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <motion.ul 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, staggerChildren: 0.1 }}
-              className="flex space-x-8"
-            >
-              {navItems.map((item, index) => (
-                <motion.li
-                  key={item.name}
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link
-                    href={item.href}
-                    className="text-white hover:text-[#00CED1] transition-colors duration-200 font-orbitron"
-                  >
-                    {item.name}
-                  </Link>
-                </motion.li>
-              ))}
-            </motion.ul>
-
-            {/* User Menu */}
+          {/* Right: Sign Up Button (Desktop) */}
+          <div className="hidden md:flex items-center">
             {status === 'authenticated' && session?.user ? (
-              <div className="relative">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-white">
+                  {session.user.name || session.user.email}
+                </span>
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 text-white"
+                  onClick={() => router.push('/dashboard')}
+                  className="px-6 py-2 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-full hover:opacity-90 transition-opacity flex items-center gap-2"
                 >
-                  {session.user.image ? (
-                    <Image
-                      src={session.user.image}
-                      alt="Profile"
-                      width={32}
-                      height={32}
-                      className="rounded-full border-2 border-white/10"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF4500] to-[#00CED1] flex items-center justify-center">
-                      {session.user.name?.[0] || session.user.email?.[0]}
-                    </div>
-                  )}
-                  <ChevronDown className="w-4 h-4" />
+                  Dashboard
                 </button>
-
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 mt-2 w-48 rounded-xl bg-black/95 backdrop-blur-sm border border-white/10 shadow-lg py-1"
-                    >
-                      {hasRegistered ? (
-                        <Link
-                          href="/registration/details"
-                          className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          View Registration
-                        </Link>
-                      ) : (
-                        <Link
-                          href="/team-register"
-                          className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Register Team
-                        </Link>
-                      )}
-                      {session.user.isAdmin && (
-                        <Link
-                          href="/admin"
-                          className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Admin
-                        </Link>
-                      )}
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        Profile
-                      </Link>
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full text-left px-4 py-2 text-sm text-white hover:text-[#00CED1] hover:bg-white/5 flex items-center space-x-2"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Sign Out</span>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             ) : (
               <SignInButton />
             )}
-          </nav>
+          </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
@@ -203,65 +105,33 @@ export default function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-black/95 backdrop-blur-sm mt-2 rounded-xl"
+            className="md:hidden bg-gray-900/95 backdrop-blur-sm mt-2 rounded-xl shadow-lg"
           >
-            <div className="px-4 pt-2 pb-3 space-y-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5 transition-colors duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              {session?.user && (
+            <div className="px-4 pt-2 pb-3 space-y-2">
+              {/* Mobile RoboMania Title */}
+              <div className="text-center py-2 border-b border-gray-700">
+                <span className="text-xl font-bold font-orbitron bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
+                  RoboMania 2025
+                </span>
+              </div>
+
+              {session?.user ? (
                 <>
-                  {hasRegistered ? (
-                    <Link
-                      href="/registration/details"
-                      className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      View Registration
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/team-register"
-                      className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Register for RoboMania
-                    </Link>
-                  )}
-                  {session.user.isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Admin
-                    </Link>
-                  )}
-                  <Link
-                    href="/profile"
-                    className="block px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
+                  <div className="px-3 py-2 text-sm text-white">
+                    {session.user.name || session.user.email}
+                  </div>
                   <button
-                    onClick={() => {
-                      signOut()
-                      setIsMenuOpen(false)
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-white/5 flex items-center space-x-2"
+                    onClick={() => router.push('/dashboard')}
+                    className="w-full px-3 py-2 rounded-md text-base font-orbitron text-white hover:text-[#00CED1] hover:bg-gray-800 flex items-center gap-2"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
+                    <span>Dashboard</span>
                   </button>
                 </>
+              ) : (
+                <div className="px-3 py-2">
+                  <SignInButton />
+                </div>
               )}
             </div>
           </motion.div>

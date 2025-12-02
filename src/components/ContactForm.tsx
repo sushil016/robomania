@@ -43,7 +43,7 @@ export default function ContactForm() {
   }
 
   return (
-    <div className="min-h-screen py-24 bg-black">
+    <div className="min-h-screen py-24 bg-gray-100">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -57,16 +57,16 @@ export default function ContactForm() {
 
         <motion.form
           onSubmit={handleSubmit}
-          className="space-y-6 bg-black/30 p-8 rounded-lg backdrop-blur-sm border border-white/10"
+          className="space-y-6 bg-white/80 p-8 rounded-lg backdrop-blur-sm border border-gray-300"
         >
           <h1 className="text-4xl font-bold font-orbitron mb-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] bg-clip-text text-transparent">
             Contact Us
           </h1> 
-          <p className="text-white/60">
+          <p className="text-gray-600">
             Have questions? We'd love to hear from you.
           </p>
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-2">
               Name
             </label>
             <input
@@ -74,13 +74,13 @@ export default function ContactForm() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
+              className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1]"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-2">
               Email
             </label>
             <input
@@ -88,13 +88,13 @@ export default function ContactForm() {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
+              className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1]"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="message" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="message" className="block text-sm font-medium text-gray-800 mb-2">
               Message
             </label>
             <textarea
@@ -102,7 +102,7 @@ export default function ContactForm() {
               value={formData.message}
               onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
               rows={4}
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1]"
+              className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1]"
               required
             />
           </div>

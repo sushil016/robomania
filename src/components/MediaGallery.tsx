@@ -109,7 +109,7 @@ export default function MediaGallery() {
               key={item.id}
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
-              className="relative group rounded-xl overflow-hidden bg-black/20 backdrop-blur-sm"
+              className="relative group rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm"
             >
               <div className="aspect-[16/9] relative">
                 <Image
@@ -125,7 +125,7 @@ export default function MediaGallery() {
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="bg-[#FF4500] text-white p-4 rounded-full"
+                      className="bg-[#FF4500] text-gray-900 p-4 rounded-full"
                     >
                       <Play size={24} />
                     </motion.button>
@@ -133,7 +133,7 @@ export default function MediaGallery() {
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="bg-[#00CED1] text-white p-4 rounded-full"
+                      className="bg-[#00CED1] text-gray-900 p-4 rounded-full"
                     >
                       <Expand size={24} />
                     </motion.button>
@@ -142,10 +142,10 @@ export default function MediaGallery() {
               </div>
               
               <div className="p-4">
-                <h3 className="text-lg font-bold font-orbitron text-white mb-2">
+                <h3 className="text-lg font-bold font-orbitron text-gray-900 mb-2">
                   {item.title}
                 </h3>
-                <div className="flex items-center text-white/60 text-sm">
+                <div className="flex items-center text-gray-600 text-sm">
                   {item.type === 'video' ? (
                     <Play size={16} className="mr-2" />
                   ) : (

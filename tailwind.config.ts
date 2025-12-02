@@ -10,6 +10,32 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  			// ==========================================
+  			// CUSTOM THEME COLORS - EDIT THESE TO CHANGE THEME
+  			// ==========================================
+  			
+  			// Main Background Colors
+  			'theme-bg': 'var(--theme-bg)',
+  			'theme-bg-secondary': 'var(--theme-bg-secondary)',
+  			'theme-bg-card': 'var(--theme-bg-card)',
+  			
+  			// Text Colors
+  			'theme-text': 'var(--theme-text)',
+  			'theme-text-secondary': 'var(--theme-text-secondary)',
+  			'theme-text-muted': 'var(--theme-text-muted)',
+  			
+  			// Border Colors
+  			'theme-border': 'var(--theme-border)',
+  			'theme-border-hover': 'var(--theme-border-hover)',
+  			
+  			// Accent Colors (for highlights, buttons, links)
+  			'theme-accent': 'var(--theme-accent)',
+  			'theme-accent-hover': 'var(--theme-accent-hover)',
+  			'theme-accent-glow': 'var(--theme-accent-glow)',
+  			
+  			// ==========================================
+  			// DEFAULT SHADCN COLORS
+  			// ==========================================
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -55,6 +81,10 @@ export default {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		boxShadow: {
+  			'glow': '0 0 20px var(--theme-accent-glow)',
+  			'glow-lg': '0 0 40px var(--theme-accent-glow)',
   		}
   	}
   },

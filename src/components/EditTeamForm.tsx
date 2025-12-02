@@ -82,18 +82,18 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
       
       {/* Team & Leader Details (Read-only) */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white/80">Team Information</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Team Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
             value={formData.teamName}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg text-gray-500"
             disabled
           />
           <input
             type="text"
             value={formData.institution}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg text-gray-500"
             disabled
           />
         </div>
@@ -101,24 +101,24 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
 
       {/* Leader Details (Read-only) */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white/80">Team Leader</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Team Leader</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             type="text"
             value={formData.leaderName}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg text-gray-500"
             disabled
           />
           <input
             type="email"
             value={formData.leaderEmail}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg text-gray-500"
             disabled
           />
           <input
             type="tel"
             value={formData.leaderPhone}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg text-gray-500"
             disabled
           />
         </div>
@@ -126,7 +126,7 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
 
       {/* Robot Details (Editable) */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white/80">Robot Details</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Robot Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
@@ -134,7 +134,7 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
             placeholder="Robot Name"
             value={formData.robotName}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
           />
           <input
             type="number"
@@ -142,7 +142,7 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
             placeholder="Weight (kg)"
             value={formData.robotWeight}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
           />
           <input
             type="text"
@@ -150,7 +150,7 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
             placeholder="Dimensions"
             value={formData.robotDimensions}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
           />
           <input
             type="text"
@@ -158,14 +158,14 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
             placeholder="Weapon Type"
             value={formData.weaponType}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+            className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
           />
         </div>
       </div>
 
       {/* Team Members (Editable) */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white/80">Team Members</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Team Members</h3>
         {formData.members.map((member, index) => (
           <div key={index} className="relative p-4 bg-white/5 rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -174,28 +174,28 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
                 placeholder="Name"
                 value={member.name}
                 onChange={(e) => handleMemberChange(index, 'name', e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+                className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
               />
               <input
                 type="email"
                 placeholder="Email"
                 value={member.email}
                 onChange={(e) => handleMemberChange(index, 'email', e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+                className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
               />
               <input
                 type="tel"
                 placeholder="Phone"
                 value={member.phone}
                 onChange={(e) => handleMemberChange(index, 'phone', e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+                className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
               />
               <input
                 type="text"
                 placeholder="Role"
                 value={member.role}
                 onChange={(e) => handleMemberChange(index, 'role', e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-[#00CED1] text-white placeholder-white/40"
+                className="w-full px-4 py-3 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00CED1] text-gray-900 placeholder-white/40"
               />
             </div>
             {formData.members.length > 3 && (
@@ -227,14 +227,14 @@ export function EditTeamForm({ initialData, onSubmit, onCancel }: EditTeamFormPr
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-white/70 hover:text-white"
+          className="px-4 py-2 text-gray-700 hover:text-gray-900"
           disabled={loading}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-[#00CED1] text-white rounded-lg hover:bg-[#00CED1]/90 disabled:opacity-50"
+          className="px-4 py-2 bg-[#00CED1] text-gray-900 rounded-lg hover:bg-[#00CED1]/90 disabled:opacity-50"
           disabled={loading}
         >
           {loading ? (

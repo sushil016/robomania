@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
@@ -11,26 +11,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // After the session check, add this debug query
-    const allTeams = await prisma.team.findMany({
-      select: {
-        id: true,
-        userEmail: true,
-        teamName: true
-      }
-    })
-    console.log('All teams:', allTeams)
+    // Fetch team with members using Supabase
+    const { data: team, error: teamError } = await supabaseAdmin
+      .from('teams')
+      .select(`
+        *,
+        team_members (*)
+      `)
+      .eq('user_email', session.user.email)
+      .single()
 
-    // Then try the main query
-    const team = await prisma.team.findUnique({
-      where: {
-        userEmail: session.user.email
-      },
-      include: {
-        members: true
+    if (teamError) {
+      if (teamError.code === 'PGRST116') {
+        console.log('No team found for email:', session.user.email)
+        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
       }
-    })
-    
+      console.error('Team fetch error:', teamError)
+      return NextResponse.json({ error: 'Failed to fetch team' }, { status: 500 })
+    }
+
     console.log('Found team:', team)
 
     if (!team) {
@@ -41,25 +40,25 @@ export async function GET() {
     // Transform to match frontend interface
     const transformedTeam = {
       id: team.id,
-      teamName: team.teamName,
+      teamName: team.team_name,
       institution: team.institution,
-      paymentStatus: team.paymentStatus.toString(),
+      paymentStatus: team.payment_status.toString(),
       registrationStatus: team.status.toString(),
       contactDetails: {
-        email: team.contactEmail,
-        phone: team.contactPhone
+        email: team.contact_email,
+        phone: team.contact_phone
       },
       leader: {
-        name: team.leaderName,
-        email: team.leaderEmail,
-        phone: team.leaderPhone
+        name: team.leader_name,
+        email: team.leader_email,
+        phone: team.leader_phone
       },
-      members: team.members,
+      members: team.team_members || [],
       robotDetails: {
-        name: team.robotName,
-        weight: team.robotWeight,
-        dimensions: team.robotDimensions,
-        weaponType: team.weaponType
+        name: team.robot_name,
+        weight: team.robot_weight,
+        dimensions: team.robot_dimensions,
+        weaponType: team.weapon_type
       }
     }
 
@@ -68,4 +67,4 @@ export async function GET() {
     console.error('Team details fetch error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
-} 
+}

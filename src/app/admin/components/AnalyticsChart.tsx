@@ -116,7 +116,7 @@ export function AnalyticsChart({ data }: AnalyticsChartProps) {
   }
 
   return (
-    <div className="bg-black/30 backdrop-blur-lg rounded-lg p-6 border border-white/10">
+    <div className="bg-white/80 backdrop-blur-lg rounded-lg p-6 border border-gray-300">
       <Line data={chartData} options={options} />
     </div>
   )

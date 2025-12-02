@@ -1,47 +1,65 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { supabaseAdmin } from '@/lib/supabase'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await auth()
-    console.log('Session:', session?.user?.email)
-
-    if (!session?.user?.email || session.user.email !== 'sahanisushil325@gmail.com') {
-      return NextResponse.json({ 
-        success: false,
-        message: 'Unauthorized'
-      }, { status: 401 })
+    
+    if (!session?.user?.email || !session.user.isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const [totalTeams, pendingPayments] = await Promise.all([
-      prisma.team.count(),
-      prisma.team.count({
-        where: {
-          paymentStatus: 'PENDING'
-        }
-      })
-    ])
+    // Get total teams
+    const { count: totalTeams } = await supabaseAdmin
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
 
-    // For now, using fixed amount per team
-    const registrationFee = 200 // ₹200 per team
-    const completedPayments = await prisma.team.count({
-      where: {
-        paymentStatus: 'COMPLETED'
-      }
-    })
+    // Get pending teams
+    const { count: pendingTeams } = await supabaseAdmin
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'PENDING')
+
+    // Get approved teams
+    const { count: approvedTeams } = await supabaseAdmin
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'APPROVED')
+
+    // Get completed payments
+    const { count: completedPayments } = await supabaseAdmin
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
+      .eq('payment_status', 'COMPLETED')
+
+    // Get total contacts
+    const { count: totalContacts } = await supabaseAdmin
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+
+    // Get newsletter subscribers
+    const { count: newsletterSubscribers } = await supabaseAdmin
+      .from('newsletter')
+      .select('*', { count: 'exact', head: true })
+      .eq('active', true)
 
     return NextResponse.json({
-      totalTeams,
-      pendingPayments,
-      totalRevenue: completedPayments * registrationFee
+      success: true,
+      stats: {
+        totalTeams: totalTeams || 0,
+        pendingTeams: pendingTeams || 0,
+        approvedTeams: approvedTeams || 0,
+        completedPayments: completedPayments || 0,
+        totalContacts: totalContacts || 0,
+        newsletterSubscribers: newsletterSubscribers || 0
+      }
     })
   } catch (error) {
     console.error('Stats API error:', error)
-    return NextResponse.json({ 
-      totalTeams: 0,
-      pendingPayments: 0,
-      totalRevenue: 0
-    }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
   }
-} 
+}

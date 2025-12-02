@@ -48,7 +48,7 @@ export default function EventDetails() {
               Event Details
             </span>
           </h2>
-          <p className="text-white/60 max-w-2xl mx-auto">
+          <p className="text-gray-600 max-w-2xl mx-auto">
             Join us for an epic battle of robots where engineering meets combat
           </p>
         </motion.div>
@@ -63,12 +63,12 @@ export default function EventDetails() {
               whileHover={{ scale: 1.02 }}
               className="bg-gradient-to-br from-gray-900 to-black p-[1px] rounded-xl"
             >
-              <div className="bg-black/50 backdrop-blur-sm p-6 rounded-xl h-full">
+              <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl h-full">
                 <rule.icon className="w-8 h-8 text-[#00CED1] mb-4" />
-                <h3 className="text-xl font-bold font-orbitron text-white mb-2">
+                <h3 className="text-xl font-bold font-orbitron text-gray-900 mb-2">
                   {rule.title}
                 </h3>
-                <p className="text-white/60">
+                <p className="text-gray-600">
                   {rule.description}
                 </p>
               </div>
@@ -80,14 +80,13 @@ export default function EventDetails() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-16 text-center"
+          className="mt-16 text-center space-x-4"
         >
           <Link 
-            href="/rulebook.pdf"
+            href="/event-details"
             className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-xl text-white font-bold shadow-lg hover:shadow-xl transition-shadow duration-300"
           >
-            <Download className="mr-2" />
-            Download Full Rulebook
+            View All Events & Download Rulebooks
           </Link>
         </motion.div>
       </div>

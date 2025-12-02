@@ -63,7 +63,7 @@ export default function AdminLogin() {
                 name="email"
                 type="email"
                 required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-white/10 bg-black/50 placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-turquoise focus:border-transparent"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 bg-white/90 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-turquoise focus:border-transparent"
                 placeholder="Email address"
               />
             </div>
@@ -76,7 +76,7 @@ export default function AdminLogin() {
                 name="password"
                 type="password"
                 required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-white/10 bg-black/50 placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-turquoise focus:border-transparent"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 bg-white/90 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-turquoise focus:border-transparent"
                 placeholder="Password"
               />
             </div>
@@ -90,7 +90,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-vibrant-orange to-turquoise hover:from-vibrant-orange/80 hover:to-turquoise/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-turquoise"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-gray-900 bg-gradient-to-r from-vibrant-orange to-turquoise hover:from-vibrant-orange/80 hover:to-turquoise/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-turquoise"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

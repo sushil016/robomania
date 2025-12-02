@@ -91,7 +91,7 @@ export default function EventHighlights() {
                   <motion.h3
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-bold font-orbitron text-white mb-2"
+                    className="text-2xl font-bold font-orbitron text-gray-900 mb-2"
                   >
                     {highlights[currentIndex].title}
                   </motion.h3>
@@ -99,7 +99,7 @@ export default function EventHighlights() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-white/80"
+                    className="text-gray-800"
                   >
                     {highlights[currentIndex].description}
                   </motion.p>
@@ -113,7 +113,7 @@ export default function EventHighlights() {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={prevSlide}
-              className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/75 transition-colors duration-200"
+              className="bg-white/90 backdrop-blur-sm text-gray-900 p-3 rounded-full hover:bg-white/95 transition-colors duration-200"
             >
               <ChevronLeft size={24} />
             </motion.button>
@@ -121,7 +121,7 @@ export default function EventHighlights() {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={nextSlide}
-              className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/75 transition-colors duration-200"
+              className="bg-white/90 backdrop-blur-sm text-gray-900 p-3 rounded-full hover:bg-white/95 transition-colors duration-200"
             >
               <ChevronRight size={24} />
             </motion.button>

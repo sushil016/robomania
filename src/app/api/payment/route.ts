@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
-import { PrismaClient } from '@prisma/client'
+import { supabaseAdmin } from '@/lib/supabase'
 
-const prisma = new PrismaClient()
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
@@ -19,11 +18,13 @@ export async function POST(request: Request) {
       )
     }
 
-    const team = await prisma.team.findUnique({
-      where: { id: body.teamId }
-    })
+    const { data: team, error } = await supabaseAdmin
+      .from('teams')
+      .select('*')
+      .eq('id', body.teamId)
+      .single()
 
-    if (!team) {
+    if (error || !team) {
       return NextResponse.json(
         { message: 'Team not found' },
         { status: 404 }
@@ -31,20 +32,19 @@ export async function POST(request: Request) {
     }
 
     const payment = await razorpay.orders.create({
-      amount: 200 * 100, // amount in paisa
+      amount: 200 * 100,
       currency: 'INR',
       receipt: `team_${body.teamId}`,
       notes: {
         teamId: body.teamId,
-        teamName: team.teamName
+        teamName: team.team_name
       },
     })
 
-    // Update team with payment ID
-    await prisma.team.update({
-      where: { id: body.teamId },
-      data: { paymentId: payment.id }
-    })
+    await supabaseAdmin
+      .from('teams')
+      .update({ payment_id: payment.id })
+      .eq('id', body.teamId)
 
     return NextResponse.json(payment)
   } catch (error) {
@@ -54,4 +54,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-} 
+}

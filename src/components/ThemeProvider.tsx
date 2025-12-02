@@ -20,9 +20,13 @@ export function ThemeProvider({ children, ...props }: { children: React.ReactNod
   }
 
   return (
-    <NextThemesProvider {...props}>
+    <NextThemesProvider 
+      {...props}
+      defaultTheme="light"
+      forcedTheme="light"
+      enableSystem={false}
+    >
       {children}
     </NextThemesProvider>
   )
 }
-

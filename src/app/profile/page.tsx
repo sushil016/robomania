@@ -63,7 +63,7 @@ export default function Profile() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/50 backdrop-blur-lg rounded-lg border border-white/10 p-6"
+          className="bg-white/90 backdrop-blur-lg rounded-lg border border-gray-300 p-6"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Form fields */}
@@ -79,7 +79,7 @@ export default function Profile() {
                     name="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full pl-10 pr-4 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-10 pr-4 py-2 bg-white/90 border border-gray-300 rounded-lg focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>

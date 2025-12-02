@@ -55,7 +55,7 @@ export default function AdminDashboard() {
         onClick={() => router.push('/admin/dashboard')}
         className="group relative inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-lg overflow-hidden transition-all duration-300 hover:scale-105"
       >
-        <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:opacity-0" />
+        <div className="absolute inset-0 bg-gray-100 transition-opacity group-hover:opacity-0" />
         <LayoutDashboard className="w-5 h-5" />
         <span className="font-semibold">Go to Dashboard</span>
       </motion.button>

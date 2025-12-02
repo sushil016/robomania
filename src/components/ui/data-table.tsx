@@ -40,7 +40,7 @@ export function DataTable<TData, TValue>({
               headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="text-left p-3 text-sm font-medium text-white/70 border-b border-white/10"
+                  className="text-left p-3 text-sm font-medium text-gray-700 border-b border-gray-300"
                 >
                   {header.isPlaceholder
                     ? null
@@ -62,7 +62,7 @@ export function DataTable<TData, TValue>({
               {row.getVisibleCells().map((cell) => (
                 <td
                   key={cell.id}
-                  className="p-3 text-sm text-white/80 border-b border-white/10"
+                  className="p-3 text-sm text-gray-800 border-b border-gray-300"
                 >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>

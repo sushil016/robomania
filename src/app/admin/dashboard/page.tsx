@@ -102,7 +102,7 @@ export default function AdminDashboard() {
           <ExportButton 
             data={teams} 
             filename="robomania-teams-export"
-            className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-orange-500 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base"
+            className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-orange-500 to-cyan-500 text-gray-900 rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export Data</span>
@@ -123,16 +123,16 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="bg-black/30 backdrop-blur-lg border-white/10 overflow-hidden">
+          <Card className="bg-white/80 backdrop-blur-lg border-gray-300 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent" />
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-              <CardTitle className="text-sm font-medium text-white/70">
+              <CardTitle className="text-sm font-medium text-gray-700">
                 Total Teams
               </CardTitle>
               <Users className="w-4 h-4 text-orange-500" />
             </CardHeader>
             <CardContent className="relative">
-              <div className="text-2xl font-bold text-white">{stats.totalTeams}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.totalTeams}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -142,16 +142,16 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="bg-black/30 backdrop-blur-lg border-white/10 overflow-hidden">
+          <Card className="bg-white/80 backdrop-blur-lg border-gray-300 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent" />
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-              <CardTitle className="text-sm font-medium text-white/70">
+              <CardTitle className="text-sm font-medium text-gray-700">
                 Pending Payments
               </CardTitle>
               <Clock className="w-4 h-4 text-cyan-500" />
             </CardHeader>
             <CardContent className="relative">
-              <div className="text-2xl font-bold text-white">{stats.pendingPayments}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.pendingPayments}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -161,16 +161,16 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="bg-black/30 backdrop-blur-lg border-white/10 overflow-hidden">
+          <Card className="bg-white/80 backdrop-blur-lg border-gray-300 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent" />
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-              <CardTitle className="text-sm font-medium text-white/70">
+              <CardTitle className="text-sm font-medium text-gray-700">
                 Total Revenue
               </CardTitle>
               <DollarSign className="w-4 h-4 text-green-500" />
             </CardHeader>
             <CardContent className="relative">
-              <div className="text-2xl font-bold text-white">₹{stats.totalRevenue}</div>
+              <div className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
         className="w-full overflow-x-auto"
       >
         <Tabs defaultValue="teams" className="w-full">
-          <TabsList className="bg-black/30 border border-white/10 mb-2 flex-wrap">
+          <TabsList className="bg-white/80 border border-gray-300 mb-2 flex-wrap">
             <TabsTrigger value="teams" className="data-[state=active]:bg-white/10 text-sm md:text-base">
               Teams
             </TabsTrigger>
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="teams" className="mt-4">
-            <div className="bg-black/30 backdrop-blur-lg rounded-lg p-3 md:p-6 border border-white/10 overflow-x-auto">
+            <div className="bg-white/80 backdrop-blur-lg rounded-lg p-3 md:p-6 border border-gray-300 overflow-x-auto">
               <DataTable 
                 data={teams}
                 columns={columns}

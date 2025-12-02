@@ -1,68 +1,72 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { supabaseAdmin } from '@/lib/supabase'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await auth()
-    console.log('Session:', session?.user?.email)
-
-    if (!session?.user?.email || session.user.email !== 'sahanisushil325@gmail.com') {
-      return NextResponse.json({ 
-        success: false,
-        message: 'Unauthorized'
-      }, { status: 401 })
+    
+    if (!session?.user?.email || !session.user.isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get registration trends (last 7 days)
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    // Get registration trends (last 30 days)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const registrationTrends = await prisma.team.groupBy({
-      by: ['createdAt'],
-      _count: {
-        id: true
-      },
-      where: {
-        createdAt: {
-          gte: sevenDaysAgo
-        }
-      },
-      orderBy: {
-        createdAt: 'asc'
+    const { data: recentTeams, error: teamsError } = await supabaseAdmin
+      .from('teams')
+      .select('created_at, status, payment_status')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true })
+
+    if (teamsError) {
+      console.error('Analytics fetch error:', teamsError)
+    }
+
+    // Group by date
+    const registrationTrends = (recentTeams || []).reduce((acc: any, team: any) => {
+      const date = new Date(team.created_at).toLocaleDateString()
+      if (!acc[date]) {
+        acc[date] = { date, count: 0 }
       }
-    })
+      acc[date].count++
+      return acc
+    }, {})
 
-    // Ensure we have data for all days
-    const allDays = []
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(sevenDaysAgo)
-      date.setDate(date.getDate() + i)
-      date.setHours(0, 0, 0, 0)
-      
-      const existingData = registrationTrends.find(
-        item => new Date(item.createdAt).toDateString() === date.toDateString()
-      )
-      
-      allDays.push({
-        date: date.toISOString(),
-        count: existingData ? existingData._count.id : 0
-      })
-    }
+    // Get status distribution
+    const { data: statusData } = await supabaseAdmin
+      .from('teams')
+      .select('status')
+
+    const statusDistribution = (statusData || []).reduce((acc: any, team: any) => {
+      acc[team.status] = (acc[team.status] || 0) + 1
+      return acc
+    }, {})
+
+    // Get payment distribution
+    const { data: paymentData } = await supabaseAdmin
+      .from('teams')
+      .select('payment_status')
+
+    const paymentDistribution = (paymentData || []).reduce((acc: any, team: any) => {
+      acc[team.payment_status] = (acc[team.payment_status] || 0) + 1
+      return acc
+    }, {})
 
     return NextResponse.json({
       success: true,
-      data: {
-        registrationTrends: allDays
+      analytics: {
+        registrationTrends: Object.values(registrationTrends),
+        statusDistribution,
+        paymentDistribution
       }
     })
   } catch (error) {
     console.error('Analytics API error:', error)
-    return NextResponse.json({
-      success: true,
-      data: {
-        registrationTrends: []
-      }
-    })
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
   }
-} 
+}

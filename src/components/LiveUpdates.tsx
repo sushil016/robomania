@@ -43,21 +43,21 @@ export default function LiveUpdates() {
               Live Updates
             </span>
           </h2>
-          <p className="text-white/60 max-w-2xl mx-auto">
+          <p className="text-gray-600 max-w-2xl mx-auto">
             Stay updated with the latest event schedules and rankings
           </p>
         </motion.div>
 
         <Tab.Group>
-          <Tab.List className="flex space-x-4 bg-black/50 backdrop-blur-sm p-2 rounded-xl mb-8">
+          <Tab.List className="flex space-x-4 bg-white/90 backdrop-blur-sm p-2 rounded-xl mb-8">
             <Tab
               className={({ selected }) =>
                 classNames(
                   'w-full py-3 px-6 text-sm font-medium rounded-lg transition-all duration-200',
                   'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-black ring-[#00CED1]',
                   selected
-                    ? 'bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white shadow-lg'
-                    : 'text-white/60 hover:text-white hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-gray-900 shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/10'
                 )
               }
             >
@@ -72,8 +72,8 @@ export default function LiveUpdates() {
                   'w-full py-3 px-6 text-sm font-medium rounded-lg transition-all duration-200',
                   'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-black ring-[#00CED1]',
                   selected
-                    ? 'bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white shadow-lg'
-                    : 'text-white/60 hover:text-white hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-gray-900 shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/10'
                 )
               }
             >
@@ -90,7 +90,7 @@ export default function LiveUpdates() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="bg-black/50 backdrop-blur-sm rounded-xl p-6"
+                className="bg-white/90 backdrop-blur-sm rounded-xl p-6"
               >
                 <div className="space-y-4">
                   {scheduleData.map((item, index) => (
@@ -102,7 +102,7 @@ export default function LiveUpdates() {
                       className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-gray-900 to-black"
                     >
                       <span className="text-[#00CED1] font-mono">{item.time}</span>
-                      <span className="text-white">{item.event}</span>
+                      <span className="text-gray-900">{item.event}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -114,7 +114,7 @@ export default function LiveUpdates() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="bg-black/50 backdrop-blur-sm rounded-xl p-6"
+                className="bg-white/90 backdrop-blur-sm rounded-xl p-6"
               >
                 <div className="space-y-4">
                   {leaderboardData.map((item, index) => (
@@ -130,9 +130,9 @@ export default function LiveUpdates() {
                           {index === 0 && <Trophy className="w-6 h-6 text-yellow-500" />}
                           {index === 1 && <Star className="w-6 h-6 text-gray-400" />}
                           {index === 2 && <Star className="w-6 h-6 text-amber-600" />}
-                          {index > 2 && <span className="text-white/60">#{item.rank}</span>}
+                          {index > 2 && <span className="text-gray-600">#{item.rank}</span>}
                         </div>
-                        <span className="ml-4 text-white font-medium">{item.team}</span>
+                        <span className="ml-4 text-gray-900 font-medium">{item.team}</span>
                       </div>
                       <span className="text-[#00CED1] font-mono">{item.points} pts</span>
                     </motion.div>

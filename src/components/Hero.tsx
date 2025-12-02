@@ -28,7 +28,7 @@ export default function Hero() {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const eventDate = new Date('2025-03-12T00:00:00').getTime()
+      const eventDate = new Date('2026-02-20T00:00:00').getTime()
       const now = new Date().getTime()
       const distance = eventDate - now
 
@@ -74,7 +74,7 @@ export default function Hero() {
         // Check if user has already registered
         const response = await fetch('/api/team-details')
         if (response.ok) {
-          router.push('/registration/details')
+          router.push('/dashboard')
         } else {
           router.push('/team-register')
         }
@@ -90,111 +90,79 @@ export default function Hero() {
 
   if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-theme-bg">
+        <Loader2 className="w-8 h-8 animate-spin text-theme-accent" />
       </div>
     )
   }
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  }
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  }
-
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-theme-bg">
       <HeroBackground />
       
       <div className="relative z-20 text-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           className="space-y-8"
         >
-          <motion.h1
-            variants={item}
-            className="text-4xl md:text-6xl lg:text-7xl font-bold font-orbitron"
-          >
-            <span className="bg-gradient-to-r from-[#FF4500] via-[#FF8C00] to-[#00CED1] bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-bold color-theme-text text-orange-300">
+            <span className="text-theme-text">
               RoboMania 2025
             </span>
-          </motion.h1>
+          </h1>
           
-          <motion.p
-            variants={item}
-            className="text-xl md:text-2xl lg:text-3xl text-white/90 font-orbitron"
-          >
+          <p className="text-xl md:text-2xl text-theme-text-secondary">
             Gear Up for the Ultimate Robot Battle
-          </motion.p>
+          </p>
           
-          <motion.div
-            variants={item}
-            className="flex flex-wrap justify-center gap-8"
-          >
+          {/* Countdown Timer */}
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
             {Object.entries(timeLeft).map(([unit, value]) => (
               <div
                 key={unit}
-                className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg bg-gradient-to-br from-[#FF4500] to-[#00CED1] p-[2px]"
+                className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-theme-bg-card border border-theme-border flex flex-col items-center justify-center"
               >
-                <div className="w-full h-full rounded-lg bg-black/90 flex flex-col items-center justify-center backdrop-blur-sm">
-                  <span className="text-2xl sm:text-4xl font-bold text-white">
-                    {value}
-                  </span>
-                  <span className="text-sm sm:text-base text-white/70 capitalize">
-                    {unit}
-                  </span>
-                </div>
+                <span className="text-2xl sm:text-4xl font-bold text-theme-text">
+                  {value}
+                </span>
+                <span className="text-xs sm:text-sm text-theme-text-muted capitalize">
+                  {unit}
+                </span>
               </div>
             ))}
-          </motion.div>
+          </div>
 
-          <motion.div
-            variants={item}
-            className="flex flex-wrap justify-center gap-4"
-          >
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap justify-center gap-4 pt-4">
             <button
               onClick={handleRegistrationClick}
               disabled={loading}
-              className="relative inline-flex group"
+              className="px-8 py-4 bg-theme-accent hover:bg-theme-accent-hover border text-white rounded-xl font-medium transition-all duration-300 hover:shadow-glow flex items-center"
             >
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-              <span className="relative px-8 py-4 bg-black rounded-lg leading-none flex items-center">
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    <span className="text-white">Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-white group-hover:text-white transition duration-200">
-                      {status === 'authenticated' 
-                        ? (hasRegistered ? 'View Registration' : 'Register Team') 
-                        : 'Sign In & Register'}
-                    </span>
-                    <ArrowRight className="w-5 h-5 ml-2 text-white" />
-                  </>
-                )}
-              </span>
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  {status === 'authenticated' 
+                    ? (hasRegistered ? 'View Registration' : 'Register Team') 
+                    : 'Sign In & Register'}
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </>
+              )}
             </button>
             
             <Link
               href="/event-details"
-              className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition duration-200"
+              className="px-8 py-4 bg-theme-bg-card border border-theme-border hover:border-theme-accent text-theme-text rounded-xl font-medium transition-all duration-300"
             >
               Learn More
             </Link>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </section>

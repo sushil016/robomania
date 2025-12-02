@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -12,11 +10,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const team = await prisma.team.findFirst({
-      where: {
-        userEmail: email
-      }
-    })
+    const { data: team, error } = await supabaseAdmin
+      .from('teams')
+      .select('id')
+      .eq('user_email', email)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Failed to check registration:', error)
+      return NextResponse.json({ error: 'Failed to check registration' }, { status: 500 })
+    }
 
     return NextResponse.json({
       hasRegistered: !!team
@@ -25,4 +28,4 @@ export async function GET(request: Request) {
     console.error('Failed to check registration:', error)
     return NextResponse.json({ error: 'Failed to check registration' }, { status: 500 })
   }
-} 
+}

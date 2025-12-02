@@ -1,40 +1,54 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { sign } from 'jsonwebtoken'
-
-const ADMIN_EMAIL = 'admin@robomania.com'
-const ADMIN_PASSWORD = 'admin123' // In production, use environment variables
+import { supabaseAdmin } from '@/lib/supabase'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
 
-    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    if (!email || !password) {
       return NextResponse.json(
-        { success: false, message: 'Invalid credentials' },
+        { error: 'Email and password required' },
+        { status: 400 }
+      )
+    }
+
+    // Fetch admin
+    const { data: admin, error } = await supabaseAdmin
+      .from('admins')
+      .select('*')
+      .eq('email', email)
+      .single()
+
+    if (error || !admin) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
-    // Create JWT token
-    const token = sign({ role: 'admin' }, process.env.JWT_SECRET || 'secret', {
-      expiresIn: '1d'
-    })
+    // Verify password
+    const isValid = await bcrypt.compare(password, admin.password)
 
-    // Set cookie
-    const cookieStore = await cookies() // Await to get the cookies object
-    await cookieStore.set('admin_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 86400 // 1 day
-    })
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      )
+    }
 
-    return NextResponse.json({ success: true })
+    // Return admin info (without password)
+    const { password: _, ...adminData } = admin
+
+    return NextResponse.json({
+      success: true,
+      admin: adminData
+    })
   } catch (error) {
+    console.error('Admin login error:', error)
     return NextResponse.json(
-      { success: false, message: 'Authentication failed' },
+      { error: 'Login failed' },
       { status: 500 }
     )
   }
-} 
+}

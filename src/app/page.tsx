@@ -1,6 +1,7 @@
 import ContactForm from "@/components/ContactForm";
 import EventDetails from "@/components/EventDetails";
 import EventHighlights from "@/components/EventHighlights";
+import EventsSection from "@/components/EventsSection";
 import Hero from "@/components/Hero";
 import LiveUpdates from "@/components/LiveUpdates";
 import MediaGallery from "@/components/MediaGallery";
@@ -10,11 +11,12 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Hero />
+      <EventsSection />
       <EventHighlights />
-      <EventDetails />
-      <LiveUpdates />
+      {/* <EventDetails /> */}
+      {/* <LiveUpdates /> */}
       <MediaGallery />
-      <ContactForm />
+      {/* <ContactForm /> */}
     </div>
   )
 }
