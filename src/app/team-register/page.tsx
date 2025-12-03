@@ -406,89 +406,161 @@ export default function TeamRegistration() {
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
   }
 
-  const handleSubmit = async (paymentMethod: 'now' | 'later') => {
+  const handleSubmit = async (paymentMethod: 'now' | 'later', gateway?: 'razorpay' | 'phonepe') => {
     setSubmitting(true)
     setError('')
 
     try {
-      // Create order with Razorpay
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          competitions: formData.selectedCompetitions,
-          teamData: {
-            teamName: formData.teamName,
-            leaderName: formData.leaderName,
-            leaderEmail: formData.leaderEmail,
-            leaderPhone: formData.leaderPhone,
-            institution: formData.institution,
-            teamMembers: formData.teamMembers
-          },
-          robotDetails: formData.robotDetails,
-          paymentMethod
-        })
-      })
-
-      const orderData = await orderResponse.json()
-
-      if (!orderResponse.ok) {
-        throw new Error(orderData.error || 'Failed to create registration')
-      }
-
       if (paymentMethod === 'later') {
-        // Save as draft and redirect to dashboard
+        // Create order without payment for draft registration
+        const orderResponse = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            competitions: formData.selectedCompetitions,
+            teamData: {
+              teamName: formData.teamName,
+              leaderName: formData.leaderName,
+              leaderEmail: formData.leaderEmail,
+              leaderPhone: formData.leaderPhone,
+              institution: formData.institution,
+              teamMembers: formData.teamMembers
+            },
+            robotDetails: formData.robotDetails,
+            paymentMethod: 'later'
+          })
+        })
+
+        const orderData = await orderResponse.json()
+
+        if (!orderResponse.ok) {
+          throw new Error(orderData.error || 'Failed to create registration')
+        }
+
         clearStorage()
         router.push('/dashboard?registered=pending')
         return
       }
 
-      // Initialize Razorpay payment
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: 'INR',
-        name: 'Robomania 2025',
-        description: 'Competition Registration',
-        order_id: orderData.orderId,
-        handler: async function (response: any) {
-          // Verify payment
-          const verifyResponse = await fetch('/api/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              registrationId: orderData.registrationId
-            })
+      // Handle payment based on selected gateway
+      if (gateway === 'phonepe') {
+        // PhonePe payment flow
+        const orderResponse = await fetch('/api/phonepe/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            competitions: formData.selectedCompetitions,
+            teamData: {
+              teamName: formData.teamName,
+              leaderName: formData.leaderName,
+              leaderEmail: formData.leaderEmail,
+              leaderPhone: formData.leaderPhone,
+              institution: formData.institution,
+              teamMembers: formData.teamMembers
+            },
+            robotDetails: formData.robotDetails
           })
+        })
 
-          if (verifyResponse.ok) {
-            clearStorage()
-            setShowSuccess(true)
-          } else {
-            setError('Payment verification failed. Please contact support.')
-          }
-        },
-        prefill: {
-          name: formData.leaderName,
-          email: formData.leaderEmail,
-          contact: formData.leaderPhone
-        },
-        theme: {
-          color: '#2563eb'
-        },
-        modal: {
-          ondismiss: function() {
-            setSubmitting(false)
-            setError('Payment cancelled. Your registration has been saved as draft.')
+        const orderData = await orderResponse.json()
+
+        if (!orderResponse.ok) {
+          throw new Error(orderData.error || 'Failed to create PhonePe order')
+        }
+
+        // Initiate PhonePe payment
+        const paymentResponse = await fetch('/api/phonepe/initiate-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            merchantOrderId: orderData.merchantOrderId,
+            amount: orderData.totalAmount,
+            userEmail: formData.leaderEmail,
+            teamName: formData.teamName
+          })
+        })
+
+        const paymentData = await paymentResponse.json()
+
+        if (!paymentResponse.ok) {
+          throw new Error(paymentData.error || 'Failed to initiate PhonePe payment')
+        }
+
+        // Redirect to PhonePe payment page
+        window.location.href = paymentData.redirectUrl
+      } else {
+        // Razorpay payment flow (existing logic)
+        const orderResponse = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            competitions: formData.selectedCompetitions,
+            teamData: {
+              teamName: formData.teamName,
+              leaderName: formData.leaderName,
+              leaderEmail: formData.leaderEmail,
+              leaderPhone: formData.leaderPhone,
+              institution: formData.institution,
+              teamMembers: formData.teamMembers
+            },
+            robotDetails: formData.robotDetails,
+            paymentMethod: 'now'
+          })
+        })
+
+        const orderData = await orderResponse.json()
+
+        if (!orderResponse.ok) {
+          throw new Error(orderData.error || 'Failed to create registration')
+        }
+
+        // Initialize Razorpay payment
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: orderData.amount,
+          currency: 'INR',
+          name: 'Robomania 2025',
+          description: 'Competition Registration',
+          order_id: orderData.orderId,
+          handler: async function (response: any) {
+            // Verify payment
+            const verifyResponse = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                registrationId: orderData.registrationId
+              })
+            })
+
+            if (verifyResponse.ok) {
+              clearStorage()
+              setShowSuccess(true)
+            } else {
+              setError('Payment verification failed. Please contact support.')
+            }
+          },
+          prefill: {
+            name: formData.leaderName,
+            email: formData.leaderEmail,
+            contact: formData.leaderPhone
+          },
+          theme: {
+            color: '#2563eb'
+          },
+          modal: {
+            ondismiss: function() {
+              setSubmitting(false)
+              setError('Payment cancelled. Your registration has been saved as draft.')
+            }
           }
         }
-      }
 
-      const razorpay = new window.Razorpay(options)
-      razorpay.open()
+        const razorpay = new window.Razorpay(options)
+        razorpay.open()
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.')
     } finally {
@@ -644,7 +716,7 @@ export default function TeamRegistration() {
                 {/* Payment Options */}
                 <PaymentOptions
                   totalAmount={calculateTotal(formData.selectedCompetitions)}
-                  onPayNow={() => handleSubmit('now')}
+                  onPayNow={(gateway) => handleSubmit('now', gateway)}
                   onPayLater={() => handleSubmit('later')}
                   isLoading={submitting}
                 />

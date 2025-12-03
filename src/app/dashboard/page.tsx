@@ -58,6 +58,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null)
   const [processingPayment, setProcessingPayment] = useState(false)
+  const [verifyingPayment, setVerifyingPayment] = useState<string | null>(null) // Track which payment is being verified
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
   const { user } = useAuth()
   const router = useRouter()
@@ -106,62 +107,154 @@ export default function Dashboard() {
     }
   }, [user])
 
-  const handlePayment = async (competitionId: string, amount: number) => {
+  const handlePayment = async (competitionId: string, amount: number, gateway: 'razorpay' | 'phonepe' = 'razorpay') => {
     if (!registrationData?.teamId) return
     setProcessingPayment(true)
+    
     try {
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          teamId: registrationData.teamId,
-          amount,
-          competitions: [{ competition: competitionId, amount }]
+      if (gateway === 'phonepe') {
+        // PhonePe payment flow
+        const orderResponse = await fetch('/api/phonepe/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamId: registrationData.teamId,
+            amount,
+            competitions: [competitionId],
+            userEmail: user?.email
+          })
         })
-      })
-      if (!orderResponse.ok) throw new Error('Failed to create order')
-      const orderResult = await orderResponse.json()
-      const razorpay = new window.Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderResult.amount,
-        currency: 'INR',
-        name: 'RoboMania 2025',
-        description: `${COMPETITIONS[competitionId as keyof typeof COMPETITIONS]?.name} Registration`,
-        order_id: orderResult.orderId,
-        handler: async (response: { razorpay_payment_id: string; razorpay_signature: string }) => {
-          try {
-            const verifyResponse = await fetch('/api/payment/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: orderResult.orderId,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                teamId: registrationData.teamId
+
+        if (!orderResponse.ok) throw new Error('Failed to create PhonePe order')
+        const orderResult = await orderResponse.json()
+
+        // Initiate PhonePe payment
+        const paymentResponse = await fetch('/api/phonepe/initiate-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            merchantOrderId: orderResult.merchantOrderId,
+            amount: orderResult.totalAmount,
+            userEmail: user?.email,
+            teamName: registrationData.teamName
+          })
+        })
+
+        if (!paymentResponse.ok) throw new Error('Failed to initiate PhonePe payment')
+        const paymentData = await paymentResponse.json()
+
+        // Redirect to PhonePe payment page
+        window.location.href = paymentData.redirectUrl
+      } else {
+        // Razorpay payment flow (existing)
+        const orderResponse = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamId: registrationData.teamId,
+            amount,
+            competitions: [{ competition: competitionId, amount }]
+          })
+        })
+        
+        if (!orderResponse.ok) throw new Error('Failed to create order')
+        const orderResult = await orderResponse.json()
+        
+        const razorpay = new window.Razorpay({
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: orderResult.amount,
+          currency: 'INR',
+          name: 'RoboMania 2025',
+          description: `${COMPETITIONS[competitionId as keyof typeof COMPETITIONS]?.name} Registration`,
+          order_id: orderResult.orderId,
+          handler: async (response: { razorpay_payment_id: string; razorpay_signature: string }) => {
+            try {
+              const verifyResponse = await fetch('/api/payment/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: orderResult.orderId,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                  teamId: registrationData.teamId
+                })
               })
-            })
-            if (verifyResponse.ok) {
-              setNotification({ type: 'success', message: 'Payment successful!' })
-              const refreshResponse = await fetch(`/api/check-registration?email=${encodeURIComponent(user?.email || '')}`)
-              if (refreshResponse.ok) {
-                const data = await refreshResponse.json()
-                setRegistrationData(data)
+              if (verifyResponse.ok) {
+                setNotification({ type: 'success', message: 'Payment successful!' })
+                const refreshResponse = await fetch(`/api/check-registration?email=${encodeURIComponent(user?.email || '')}`)
+                if (refreshResponse.ok) {
+                  const data = await refreshResponse.json()
+                  setRegistrationData(data)
+                }
+              } else {
+                setNotification({ type: 'error', message: 'Payment verification failed.' })
               }
-            } else {
+            } catch {
               setNotification({ type: 'error', message: 'Payment verification failed.' })
             }
-          } catch {
-            setNotification({ type: 'error', message: 'Payment verification failed.' })
-          }
-        },
-        prefill: { email: user?.email },
-        theme: { color: '#000000' }
-      })
-      razorpay.open()
+          },
+          prefill: { email: user?.email },
+          theme: { color: '#000000' }
+        })
+        razorpay.open()
+      }
     } catch (err) {
       setNotification({ type: 'error', message: 'Failed to initiate payment.' })
     } finally {
       setProcessingPayment(false)
+    }
+  }
+
+  // Verify PhonePe payment manually
+  const verifyPhonePePayment = async (paymentId: string) => {
+    setVerifyingPayment(paymentId)
+    try {
+      console.log('Verifying PhonePe payment:', paymentId)
+      
+      const response = await fetch('/api/phonepe/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantOrderId: paymentId,
+          email: user?.email
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setNotification({ 
+          type: 'success', 
+          message: `Payment verified successfully! Transaction ID: ${data.transactionId}` 
+        })
+        
+        // Reload registration data
+        if (user?.email) {
+          const regResponse = await fetch(`/api/check-registration?email=${encodeURIComponent(user.email)}`)
+          if (regResponse.ok) {
+            const regData = await regResponse.json()
+            setRegistrationData(regData)
+          }
+        }
+      } else if (response.status === 202) {
+        setNotification({ 
+          type: 'info', 
+          message: 'Payment is still pending. Please wait a moment and try again.' 
+        })
+      } else {
+        setNotification({ 
+          type: 'error', 
+          message: data.message || 'Payment verification failed' 
+        })
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error)
+      setNotification({ 
+        type: 'error', 
+        message: 'Failed to verify payment. Please try again.' 
+      })
+    } finally {
+      setVerifyingPayment(null)
     }
   }
 
@@ -242,10 +335,29 @@ export default function Dashboard() {
                       <div className="flex-1">
                         <h3 className="font-bold text-sm">{COMPETITIONS[competition.competition_type as keyof typeof COMPETITIONS]?.name || competition.competition_type}</h3>
                         <p className="text-xs text-gray-600 mt-1">₹{competition.amount}</p>
+                        {competition.payment_id && competition.payment_id.startsWith('ROBOMANIA_') && (
+                          <p className="text-xs text-gray-500 mt-1">Order: {competition.payment_id}</p>
+                        )}
                       </div>
-                      <span className={`text-xs px-2 py-1 border ${competition.payment_status === 'COMPLETED' ? 'border-black bg-black text-white' : 'border-black'}`}>
-                        {competition.payment_status === 'COMPLETED' ? 'Paid' : 'Pending'}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`text-xs px-2 py-1 border ${competition.payment_status === 'COMPLETED' ? 'border-black bg-black text-white' : 'border-black'}`}>
+                          {competition.payment_status === 'COMPLETED' ? 'Paid' : 'Pending'}
+                        </span>
+                        {/* Verify PhonePe Payment Button */}
+                        {competition.payment_status === 'PENDING' && 
+                         competition.payment_id && 
+                         competition.payment_id.startsWith('ROBOMANIA_') && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => verifyPhonePePayment(competition.payment_id!)}
+                            disabled={verifyingPayment === competition.payment_id}
+                            className="text-xs px-3 py-1 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {verifyingPayment === competition.payment_id ? 'Verifying...' : 'Verify Payment'}
+                          </motion.button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Team Information for this Competition */}
@@ -317,10 +429,32 @@ export default function Dashboard() {
                       </div>
                     )}
                     
+                    {/* Payment Gateway Options for Pending Payments */}
                     {competition.payment_status === 'PENDING' && (
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handlePayment(competition.competition_type, competition.amount)} disabled={processingPayment} className="mt-3 w-full py-2 bg-black text-white text-xs font-bold hover:bg-gray-800 disabled:opacity-50">
-                        {processingPayment ? 'Processing...' : `Pay ₹${competition.amount}`}
-                      </motion.button>
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-600">Choose Payment Method</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <motion.button 
+                            whileHover={{ scale: 1.02 }} 
+                            whileTap={{ scale: 0.98 }} 
+                            onClick={() => handlePayment(competition.competition_type, competition.amount, 'razorpay')} 
+                            disabled={processingPayment} 
+                            className="py-2 bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                          >
+                            {processingPayment ? '...' : 'Razorpay'}
+                          </motion.button>
+                          <motion.button 
+                            whileHover={{ scale: 1.02 }} 
+                            whileTap={{ scale: 0.98 }} 
+                            onClick={() => handlePayment(competition.competition_type, competition.amount, 'phonepe')} 
+                            disabled={processingPayment} 
+                            className="py-2 bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                          >
+                            {processingPayment ? '...' : 'PhonePe'}
+                          </motion.button>
+                        </div>
+                        <p className="text-center text-xs text-gray-500">₹{competition.amount}</p>
+                      </div>
                     )}
                     {competition.payment_date && <p className="mt-2 text-xs text-gray-500">Paid: {new Date(competition.payment_date).toLocaleDateString()}</p>}
                   </motion.div>

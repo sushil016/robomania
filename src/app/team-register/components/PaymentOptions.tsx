@@ -3,15 +3,18 @@
 import { motion } from 'framer-motion'
 import { Shield, Clock, CreditCard, HelpCircle, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/validation'
+import { useState } from 'react'
 
 interface PaymentOptionsProps {
   totalAmount: number
-  onPayNow: () => void
+  onPayNow: (gateway: 'razorpay' | 'phonepe') => void
   onPayLater: () => void
   isLoading: boolean
 }
 
 export function PaymentOptions({ totalAmount, onPayNow, onPayLater, isLoading }: PaymentOptionsProps) {
+  const [selectedGateway, setSelectedGateway] = useState<'razorpay' | 'phonepe'>('razorpay')
+
   return (
     <div className="space-y-6">
       {/* Payment Security Banner */}
@@ -25,8 +28,42 @@ export function PaymentOptions({ totalAmount, onPayNow, onPayLater, isLoading }:
           <h3 className="font-semibold text-gray-900">Secure Payment Gateway</h3>
         </div>
         <p className="text-sm text-gray-700 ml-9">
-          Powered by Razorpay - Your payment information is encrypted and secure. We support UPI, Cards, Net Banking, and Wallets.
+          Your payment information is encrypted and secure. We support UPI, Cards, Net Banking, and Wallets through multiple payment providers.
         </p>
+      </motion.div>
+
+      {/* Payment Gateway Selection */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="space-y-3"
+      >
+        <h3 className="font-semibold text-gray-900">Choose Payment Gateway</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setSelectedGateway('razorpay')}
+            className={`p-4 rounded-lg border-2 transition-all ${
+              selectedGateway === 'razorpay'
+                ? 'border-blue-600 bg-blue-50'
+                : 'border-gray-300 bg-white hover:border-gray-400'
+            }`}
+          >
+            <div className="font-semibold text-gray-900">Razorpay</div>
+            <div className="text-xs text-gray-600 mt-1">UPI, Cards, Wallets</div>
+          </button>
+          <button
+            onClick={() => setSelectedGateway('phonepe')}
+            className={`p-4 rounded-lg border-2 transition-all ${
+              selectedGateway === 'phonepe'
+                ? 'border-purple-600 bg-purple-50'
+                : 'border-gray-300 bg-white hover:border-gray-400'
+            }`}
+          >
+            <div className="font-semibold text-gray-900">PhonePe</div>
+            <div className="text-xs text-gray-600 mt-1">UPI, Cards, Wallets</div>
+          </button>
+        </div>
       </motion.div>
 
       {/* Payment Options */}
@@ -36,7 +73,7 @@ export function PaymentOptions({ totalAmount, onPayNow, onPayLater, isLoading }:
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="relative border-2 border-blue-600 bg-blue-50 rounded-xl p-6 cursor-pointer"
-          onClick={!isLoading ? onPayNow : undefined}
+          onClick={!isLoading ? () => onPayNow(selectedGateway) : undefined}
         >
           <div className="absolute top-3 right-3">
             <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded">
@@ -66,10 +103,11 @@ export function PaymentOptions({ totalAmount, onPayNow, onPayLater, isLoading }:
           </ul>
 
           <button
+            onClick={() => !isLoading && onPayNow(selectedGateway)}
             disabled={isLoading}
             className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Processing...' : 'Continue to Payment'}
+            {isLoading ? 'Processing...' : `Continue with ${selectedGateway === 'razorpay' ? 'Razorpay' : 'PhonePe'}`}
           </button>
         </motion.div>
 

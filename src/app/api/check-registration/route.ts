@@ -129,6 +129,45 @@ export async function GET(request: Request) {
       } else {
         registeredCompetitions = competitions || []
         console.log('Using new format, competitions:', registeredCompetitions)
+        
+        // Check if any competitions have null bots - if so, try to fetch from teams table
+        const hasNullBots = registeredCompetitions.some(c => c.bot_id === null && c.bots === null)
+        
+        if (hasNullBots) {
+          console.log('Some competitions have null bots, fetching from teams table as fallback')
+          
+          const { data: fullTeam } = await supabaseAdmin
+            .from('teams')
+            .select('robot_name, robot_weight, robot_dimensions, weapon_type')
+            .eq('id', team.id)
+            .single()
+
+          if (fullTeam && (fullTeam as any).robot_name) {
+            console.log('Found bot data in teams table:', fullTeam)
+            
+            const fallbackBotData = {
+              id: null,
+              bot_name: (fullTeam as any).robot_name,
+              weight: (fullTeam as any).robot_weight,
+              dimensions: (fullTeam as any).robot_dimensions,
+              weapon_type: (fullTeam as any).weapon_type,
+              is_weapon_bot: !!(fullTeam as any).weapon_type && (fullTeam as any).weapon_type !== ''
+            }
+            
+            // Apply fallback bot data to competitions without bots
+            registeredCompetitions = registeredCompetitions.map(comp => {
+              if (comp.bot_id === null && comp.bots === null) {
+                return {
+                  ...comp,
+                  bots: fallbackBotData
+                }
+              }
+              return comp
+            })
+            
+            console.log('Applied fallback bot data to competitions')
+          }
+        }
       }
 
       // Get user's saved bots (only works if migration run)
