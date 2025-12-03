@@ -16,6 +16,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { orderId, paymentId, signature, teamId, competitions, userEmail } = body
 
+    console.log('Payment verification request:', { orderId, paymentId, teamId, competitionsCount: competitions?.length })
+
     // Verify signature
     const text = orderId + "|" + paymentId
     const generated_signature = crypto
@@ -24,14 +26,49 @@ export async function POST(request: Request) {
       .digest("hex")
 
     if (generated_signature !== signature) {
+      console.error('Invalid payment signature')
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 400 }
       )
     }
 
-    // Update payment status in teams table
-    // First try by teamId (direct), then by payment_id (backwards compatibility)
+    console.log('✅ Payment signature verified successfully')
+
+    // Update competition_registrations table (new multi-competition system)
+    if (teamId) {
+      // Find all registrations with this payment_id (orderId)
+      const { data: registrations, error: fetchError } = await supabaseAdmin
+        .from('competition_registrations')
+        .select('*')
+        .eq('payment_id', orderId)
+
+      if (fetchError) {
+        console.error('Failed to fetch competition registrations:', fetchError)
+      } else if (registrations && registrations.length > 0) {
+        console.log(`Found ${registrations.length} competition registrations to update`)
+        
+        // Update all registrations with this payment_id to COMPLETED
+        const { error: updateError } = await supabaseAdmin
+          .from('competition_registrations')
+          .update({
+            payment_status: 'COMPLETED',
+            registration_status: 'CONFIRMED',
+            payment_date: new Date().toISOString()
+          })
+          .eq('payment_id', orderId)
+
+        if (updateError) {
+          console.error('Failed to update competition registrations:', updateError)
+        } else {
+          console.log('✅ Competition registrations updated to COMPLETED')
+        }
+      } else {
+        console.log('No competition registrations found with orderId:', orderId)
+      }
+    }
+
+    // Update teams table (for backward compatibility and overall status)
     let teamUpdateSuccess = false
     
     if (teamId) {
@@ -47,7 +84,7 @@ export async function POST(request: Request) {
 
       if (!teamError) {
         teamUpdateSuccess = true
-        console.log('Team payment status updated successfully for teamId:', teamId)
+        console.log('✅ Team payment status updated successfully for teamId:', teamId)
       } else {
         console.error('Failed to update team by teamId:', teamError)
       }
@@ -66,43 +103,8 @@ export async function POST(request: Request) {
 
       if (teamError) {
         console.error('Failed to update team payment status by orderId:', teamError)
-      }
-    }
-
-    // If competitions data is provided, create competition registrations
-    if (competitions && Array.isArray(competitions) && teamId && userEmail) {
-      const registrationsToInsert = competitions.map((comp: CompetitionData) => ({
-        team_id: teamId,
-        user_email: userEmail,
-        competition: comp.competition,
-        amount: comp.amount,
-        robot_name: comp.robotName || null,
-        robot_weight: comp.robotWeight || null,
-        robot_dimensions: comp.robotDimensions || null,
-        weapon_type: comp.weaponType || null,
-        payment_id: paymentId,
-        payment_status: 'COMPLETED',
-        payment_date: new Date().toISOString(),
-        status: 'CONFIRMED'
-      }))
-
-      const { error: compError } = await supabaseAdmin
-        .from('competition_registrations')
-        .insert(registrationsToInsert)
-
-      if (compError) {
-        console.error('Failed to create competition registrations:', compError)
-        // Check for unique constraint violation - means already registered
-        if (compError.code === '23505') {
-          return NextResponse.json(
-            { error: 'One or more competitions already registered', success: false },
-            { status: 409 }
-          )
-        }
-        return NextResponse.json(
-          { error: 'Failed to create competition registrations' },
-          { status: 500 }
-        )
+      } else {
+        console.log('✅ Team payment status updated by orderId')
       }
     }
 
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Payment verification error:', error)
     return NextResponse.json(
-      { error: 'Payment verification failed' },
+      { error: 'Payment verification failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

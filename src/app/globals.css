@@ -97,6 +97,23 @@
 }
 
 @layer components {
+  /* Form Input Styles - Fix white text on white background */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="url"],
+  textarea,
+  select {
+    @apply text-gray-900 bg-white;
+  }
+  
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-400;
+  }
+  
   .text-gradient {
     background: linear-gradient(to right, var(--theme-accent), var(--theme-accent-hover));
     -webkit-background-clip: text;

@@ -8,537 +8,720 @@ declare global {
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Check, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Save } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { ModernStepIndicator } from '@/components/ModernStepIndicator'
+import { CompetitionCard } from './components/CompetitionCard'
+import { TeamForm } from './components/TeamForm'
+import { RobotForm } from './components/RobotForm'
+import { ReviewSummary } from './components/ReviewSummary'
+import { LoadingState } from './components/LoadingState'
+import { StepTransition } from './components/StepTransition'
+import { CompetitionPreview } from './components/CompetitionPreview'
+import { PaymentOptions } from './components/PaymentOptions'
+import { SuccessCelebration } from './components/SuccessCelebration'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
+import { useStepValidation } from '@/hooks/useStepValidation'
+import { calculateTotal } from '@/lib/validation'
+import { getAutoFillData, saveInstitution } from '@/lib/autoFill'
+import { announceToScreenReader, focusFirstError, prefersReducedMotion } from '@/lib/accessibility'
 
 const COMPETITIONS = [
-  { id: 'ROBOWARS', name: 'RoboWars', description: 'Robot combat arena - Battle your way to victory', price: 300, icon: '⚔️', requiresRobot: true },
-  { id: 'ROBORACE', name: 'RoboRace', description: 'High-speed racing through challenging tracks', price: 200, icon: '🏎️', requiresRobot: true },
-  { id: 'ROBOSOCCER', name: 'RoboSoccer', description: '2v2 robot soccer championship', price: 200, icon: '⚽', requiresRobot: true }
+  { 
+    id: 'robowars', 
+    name: 'RoboWars', 
+    description: 'Robot combat arena - Battle your way to victory', 
+    price: 300, 
+    slug: 'robowars',
+    maxWeight: 8,
+    teamSize: '2-5',
+    prizePool: '₹39,000'
+  },
+  { 
+    id: 'roborace', 
+    name: 'RoboRace', 
+    description: 'High-speed racing through challenging tracks', 
+    price: 200, 
+    slug: 'roborace',
+    maxWeight: 5,
+    teamSize: '2-4',
+    prizePool: '₹20,000'
+  },
+  { 
+    id: 'robosoccer', 
+    name: 'RoboSoccer', 
+    description: '2v2 robot soccer championship', 
+    price: 200, 
+    slug: 'robosoccer',
+    maxWeight: 3,
+    teamSize: '2-4',
+    prizePool: '₹20,000'
+  }
 ]
 
-type TeamData = {
+const STEP_LABELS = ['Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
+
+const STEP_DATA = [
+  {
+    number: 1,
+    title: 'Select Competitions',
+    description: 'Choose which events you want to participate in'
+  },
+  {
+    number: 2,
+    title: 'Team Details',
+    description: 'Enter your team information and members'
+  },
+  {
+    number: 3,
+    title: 'Robot Details',
+    description: 'Provide specifications for each robot'
+  },
+  {
+    number: 4,
+    title: 'Review & Payment',
+    description: 'Confirm details and complete registration'
+  }
+]
+
+type TeamMember = {
+  name: string
+  email: string
+  phone: string
+  role: string
+}
+
+type RobotDetail = {
+  robotName: string
+  weight: string
+  dimensions: string
+  weaponType?: string
+}
+
+type FormData = {
+  selectedCompetitions: string[]
   teamName: string
-  institution: string
-  contactEmail: string
-  contactPhone: string
   leaderName: string
   leaderEmail: string
   leaderPhone: string
-  members: { name: string; email: string; phone: string; role: string }[]
+  institution: string
+  teamMembers: TeamMember[]
+  robotDetails: Record<string, RobotDetail>
 }
-
-type RobotData = { robotName: string; robotWeight: string; robotDimensions: string; weaponType: string }
-
-type ExistingRegistration = { competition: string; status: string; payment_status: string }
 
 export default function TeamRegistration() {
   const router = useRouter()
   const { data: session, status } = useSession()
   
   const [currentStep, setCurrentStep] = useState(1)
+  const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>('forward')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   
   const [hasExistingTeam, setHasExistingTeam] = useState(false)
   const [existingTeamId, setExistingTeamId] = useState<string | null>(null)
-  const [existingRegistrations, setExistingRegistrations] = useState<ExistingRegistration[]>([])
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false)
   
-  const [selectedCompetitions, setSelectedCompetitions] = useState<string[]>([])
+  // Preview state
+  const [previewCompetition, setPreviewCompetition] = useState<string | null>(null)
   
-  const [teamData, setTeamData] = useState<TeamData>({
-    teamName: '', institution: '', contactEmail: '', contactPhone: '',
-    leaderName: '', leaderEmail: '', leaderPhone: '',
-    members: [
-      { name: '', email: '', phone: '', role: '' },
-      { name: '', email: '', phone: '', role: '' },
-      { name: '', email: '', phone: '', role: '' }
-    ]
-  })
-  
-  const [robotDetails, setRobotDetails] = useState<Record<string, RobotData>>({
-    ROBOWARS: { robotName: '', robotWeight: '', robotDimensions: '', weaponType: '' },
-    ROBORACE: { robotName: '', robotWeight: '', robotDimensions: '', weaponType: 'N/A' },
-    ROBOSOCCER: { robotName: '', robotWeight: '', robotDimensions: '', weaponType: 'N/A' }
+  // Form state
+  const [formData, setFormData] = useState<FormData>({
+    selectedCompetitions: [],
+    teamName: '',
+    leaderName: '',
+    leaderEmail: '',
+    leaderPhone: '',
+    institution: '',
+    teamMembers: [],
+    robotDetails: {}
   })
 
+  // Custom hooks
+  const { 
+    validateStep1, 
+    validateStep2, 
+    validateStep3, 
+    getFieldError, 
+    clearErrors,
+    removeFieldError,
+    errors: validationErrors
+  } = useStepValidation()
+  
+  const { saveToStorage, loadFromStorage, clearStorage, hasDraft } = useFormPersistence(formData, !hasExistingTeam)
+
+  // Load draft on mount
   useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.async = true
-    document.body.appendChild(script)
-    return () => {
-      const s = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
-      if (s) document.body.removeChild(s)
+    if (!hasExistingTeam && hasDraft()) {
+      setShowDraftPrompt(true)
     }
-  }, [])
+  }, [hasExistingTeam, hasDraft])
 
+  // Check authentication and existing team
   useEffect(() => {
-    const checkExisting = async () => {
+    const checkAuth = async () => {
       if (status === 'loading') return
-      if (!session?.user?.email) { setLoading(false); return }
 
+      if (!session?.user) {
+        router.push('/auth/login?callbackUrl=/team-register')
+        return
+      }
+
+      // Smart auto-fill from session and localStorage
+      const autoFillData = getAutoFillData(session)
+      if (autoFillData) {
+        setFormData(prev => ({
+          ...prev,
+          leaderEmail: autoFillData.leaderEmail || prev.leaderEmail,
+          leaderName: autoFillData.leaderName || prev.leaderName,
+          institution: autoFillData.institution || prev.institution,
+        }))
+      }
+
+      // Check for existing team
       try {
-        const response = await fetch('/api/team-details')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.team) {
-            setHasExistingTeam(true)
-            setExistingTeamId(data.team.id)
-            setTeamData({
-              teamName: data.team.teamName || '', institution: data.team.institution || '',
-              contactEmail: data.team.contactDetails?.email || '', contactPhone: data.team.contactDetails?.phone || '',
-              leaderName: data.team.leader?.name || '', leaderEmail: data.team.leader?.email || '', leaderPhone: data.team.leader?.phone || '',
-              members: data.team.members?.length > 0 ? data.team.members : [
-                { name: '', email: '', phone: '', role: '' },
-                { name: '', email: '', phone: '', role: '' },
-                { name: '', email: '', phone: '', role: '' }
-              ]
-            })
+        const response = await fetch('/api/check-registration')
+        const data = await response.json()
+        
+        if (data.hasRegistered && data.teamId) {
+          setHasExistingTeam(true)
+          setExistingTeamId(data.teamId)
+          
+          // Pre-fill team name from existing team
+          if (data.teamName) {
+            setFormData(prev => ({
+              ...prev,
+              teamName: data.teamName
+            }))
+          }
+        } else if (session?.user?.email) {
+          // If no team yet, try to fetch team name from previous registration
+          try {
+            const teamNameResponse = await fetch(`/api/team-details/name?email=${session.user.email}`)
+            const teamNameData = await teamNameResponse.json()
+            
+            if (teamNameData.success && teamNameData.hasTeam && teamNameData.teamName) {
+              // Pre-fill team name from previous registration
+              setFormData(prev => ({
+                ...prev,
+                teamName: teamNameData.teamName
+              }))
+            }
+          } catch (err) {
+            console.log('No previous team name found')
           }
         }
-        const regResponse = await fetch('/api/competition-registrations')
-        if (regResponse.ok) {
-          const regData = await regResponse.json()
-          setExistingRegistrations(regData.registrations || [])
-        }
-      } catch (err) { console.error('Error checking existing:', err) }
-      finally { setLoading(false) }
+      } catch (err) {
+        console.error('Failed to check registration:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-    checkExisting()
-  }, [session, status])
 
+    checkAuth()
+  }, [session, status, router])
+
+  // Auto-save indicator
   useEffect(() => {
-    if (session?.user?.email && !teamData.contactEmail) {
-      setTeamData(prev => ({ ...prev, contactEmail: session.user?.email || '' }))
-    }
-  }, [session, teamData.contactEmail])
+    const interval = setInterval(() => {
+      if (!hasExistingTeam && formData.selectedCompetitions.length > 0) {
+        setAutoSaving(true)
+        setTimeout(() => setAutoSaving(false), 1000)
+      }
+    }, 30000)
 
-  const isCompetitionRegistered = (compId: string) => existingRegistrations.some(r => r.competition === compId)
-  
-  const toggleCompetition = (compId: string) => {
-    if (isCompetitionRegistered(compId)) return
-    setSelectedCompetitions(prev => prev.includes(compId) ? prev.filter(c => c !== compId) : [...prev, compId])
-  }
+    return () => clearInterval(interval)
+  }, [formData, hasExistingTeam])
 
-  const getTotalAmount = () => selectedCompetitions.reduce((total, compId) => total + (COMPETITIONS.find(c => c.id === compId)?.price || 0), 0)
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape key - close modals
+      if (e.key === 'Escape') {
+        if (previewCompetition) {
+          setPreviewCompetition(null)
+        }
+        if (showDraftPrompt) {
+          setShowDraftPrompt(false)
+        }
+      }
 
-  const handleTeamInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setTeamData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleMemberChange = (index: number, field: string, value: string) => {
-    setTeamData(prev => ({
-      ...prev,
-      members: prev.members.map((member, i) => i === index ? { ...member, [field]: value } : member)
-    }))
-  }
-
-  const handleRobotChange = (compId: string, field: string, value: string) => {
-    setRobotDetails(prev => ({ ...prev, [compId]: { ...prev[compId], [field]: value } }))
-  }
-
-  const addMember = () => {
-    if (teamData.members.length < 6) {
-      setTeamData(prev => ({ ...prev, members: [...prev.members, { name: '', email: '', phone: '', role: '' }] }))
-    }
-  }
-
-  const removeMember = (index: number) => {
-    if (teamData.members.length > 3) {
-      setTeamData(prev => ({ ...prev, members: prev.members.filter((_, i) => i !== index) }))
-    }
-  }
-
-  const validateStep = (step: number) => {
-    setError('')
-    if (step === 1 && selectedCompetitions.length === 0) {
-      setError('Please select at least one competition')
-      return false
-    }
-    if (step === 2 && !hasExistingTeam) {
-      if (!teamData.teamName || !teamData.institution) { setError('Team name and institution are required'); return false }
-      if (!teamData.leaderName || !teamData.leaderEmail || !teamData.leaderPhone) { setError('Leader details are required'); return false }
-      if (!teamData.contactEmail || !teamData.contactPhone) { setError('Contact details are required'); return false }
-      const validMembers = teamData.members.filter(m => m.name && m.email && m.phone && m.role)
-      if (validMembers.length < 3) { setError('At least 3 team members with complete details are required'); return false }
-    }
-    if (step === 3) {
-      for (const compId of selectedCompetitions) {
-        const robot = robotDetails[compId]
-        if (!robot.robotName || !robot.robotWeight || !robot.robotDimensions) {
-          const comp = COMPETITIONS.find(c => c.id === compId)
-          setError('Robot details for ' + (comp?.name || compId) + ' are required')
-          return false
+      // Arrow keys for navigation (only when not typing)
+      if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        if (e.key === 'ArrowRight' && currentStep < 4 && !submitting) {
+          e.preventDefault()
+          handleNextStep()
+        } else if (e.key === 'ArrowLeft' && currentStep > 1 && !submitting) {
+          e.preventDefault()
+          handlePrevStep()
         }
       }
     }
-    return true
-  }
 
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep === 1 && hasExistingTeam) { setCurrentStep(3) }
-      else { setCurrentStep(prev => Math.min(prev + 1, 4)) }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentStep, submitting, previewCompetition, showDraftPrompt])
+
+  const loadDraft = () => {
+    const draft = loadFromStorage()
+    if (draft) {
+      setFormData(draft)
+      setShowDraftPrompt(false)
     }
   }
 
-  const prevStep = () => {
-    if (currentStep === 3 && hasExistingTeam) { setCurrentStep(1) }
-    else { setCurrentStep(prev => Math.max(prev - 1, 1)) }
+  const discardDraft = () => {
+    clearStorage()
+    setShowDraftPrompt(false)
   }
 
-  const handleSubmit = async (payNow: boolean = true) => {
-    if (!validateStep(3)) return
-    if (!session?.user?.email) { setError('You must be logged in to register'); return }
+  const handleCompetitionToggle = (competitionId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.selectedCompetitions.includes(competitionId)
+      const updated = isSelected
+        ? prev.selectedCompetitions.filter(id => id !== competitionId)
+        : [...prev.selectedCompetitions, competitionId]
+      
+      // Initialize robot details for newly selected competitions
+      const newRobotDetails = { ...prev.robotDetails }
+      if (!isSelected) {
+        newRobotDetails[competitionId] = {
+          robotName: '',
+          weight: '',
+          dimensions: '',
+          weaponType: competitionId === 'robowars' ? '' : undefined
+        }
+      } else {
+        delete newRobotDetails[competitionId]
+      }
+
+      return {
+        ...prev,
+        selectedCompetitions: updated,
+        robotDetails: newRobotDetails
+      }
+    })
+    removeFieldError('competitions')
+  }
+
+  const handleTeamDataChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+    
+    // Save institution to localStorage for future use
+    if (field === 'institution' && value) {
+      saveInstitution(value)
+    }
+  }
+
+  const handleRobotDetailChange = (competition: string, field: keyof RobotDetail, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      robotDetails: {
+        ...prev.robotDetails,
+        [competition]: {
+          ...prev.robotDetails[competition],
+          [field]: value
+        }
+      }
+    }))
+  }
+
+  const handleNextStep = () => {
+    clearErrors()
+    
+    // Validate current step
+    let isValid = false
+    
+    switch (currentStep) {
+      case 1:
+        isValid = validateStep1(formData.selectedCompetitions)
+        break
+      case 2:
+        isValid = validateStep2({
+          teamName: formData.teamName,
+          leaderName: formData.leaderName,
+          leaderEmail: formData.leaderEmail,
+          leaderPhone: formData.leaderPhone,
+          institution: formData.institution,
+          teamMembers: formData.teamMembers
+        })
+        break
+      case 3:
+        isValid = validateStep3(formData.robotDetails)
+        break
+      default:
+        isValid = true
+    }
+
+    if (isValid) {
+      setStepDirection('forward')
+      const nextStep = Math.min(currentStep + 1, 4)
+      setCurrentStep(nextStep)
+      
+      // Announce step change to screen readers
+      const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
+      announceToScreenReader(`Moved to step ${nextStep}: ${stepNames[nextStep]}`)
+      
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+    } else {
+      setError('Please fill in all required fields correctly')
+      
+      // Announce validation errors to screen readers
+      announceToScreenReader('Validation failed. Please check the form for errors.')
+      
+      // Focus first error field after a brief delay
+      setTimeout(() => focusFirstError(validationErrors), 100)
+      
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+    }
+  }
+
+  const handlePrevStep = () => {
+    setStepDirection('backward')
+    const prevStep = Math.max(currentStep - 1, 1)
+    setCurrentStep(prevStep)
+    clearErrors()
+    
+    // Announce step change to screen readers
+    const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
+    announceToScreenReader(`Moved back to step ${prevStep}: ${stepNames[prevStep]}`)
+    
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }
+
+  const handleEditStep = (step: number) => {
+    setStepDirection(step < currentStep ? 'backward' : 'forward')
+    setCurrentStep(step)
+    
+    // Announce step change to screen readers
+    const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
+    announceToScreenReader(`Editing step ${step}: ${stepNames[step]}`)
+    
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }
+
+  const handleSubmit = async (paymentMethod: 'now' | 'later') => {
     setSubmitting(true)
     setError('')
 
     try {
-      let teamId = existingTeamId
-      
-      // Always register/update team first
-      const teamResponse = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...teamData, userEmail: session.user.email,
-          robotName: robotDetails[selectedCompetitions[0]]?.robotName || '',
-          robotWeight: robotDetails[selectedCompetitions[0]]?.robotWeight || '',
-          robotDimensions: robotDetails[selectedCompetitions[0]]?.robotDimensions || '',
-          weaponType: robotDetails[selectedCompetitions[0]]?.weaponType || 'N/A'
-        })
-      })
-      
-      const teamResult = await teamResponse.json()
-      if (!teamResponse.ok) { 
-        throw new Error(teamResult.message || 'Failed to register team') 
-      }
-      teamId = teamResult.team.id
-
-      // If user chose "Pay Later", redirect to dashboard with pending status
-      if (!payNow) {
-        router.push('/dashboard?status=pending')
-        return
-      }
-
-      // Proceed with payment
+      // Create order with Razorpay
       const orderResponse = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          teamId,
-          competitions: selectedCompetitions.map(compId => ({
-            competition: compId,
-            amount: COMPETITIONS.find(c => c.id === compId)?.price || 0,
-            robotDetails: robotDetails[compId]
-          })),
-          amount: getTotalAmount()
+          competitions: formData.selectedCompetitions,
+          teamData: {
+            teamName: formData.teamName,
+            leaderName: formData.leaderName,
+            leaderEmail: formData.leaderEmail,
+            leaderPhone: formData.leaderPhone,
+            institution: formData.institution,
+            teamMembers: formData.teamMembers
+          },
+          robotDetails: formData.robotDetails,
+          paymentMethod
         })
       })
-      
-      if (!orderResponse.ok) { 
-        const err = await orderResponse.json()
-        // If payment fails, still save as draft and offer to pay later
-        setError('Payment setup failed. Your registration is saved. You can pay later from your dashboard.')
-        setTimeout(() => router.push('/dashboard?status=pending'), 3000)
+
+      const orderData = await orderResponse.json()
+
+      if (!orderResponse.ok) {
+        throw new Error(orderData.error || 'Failed to create registration')
+      }
+
+      if (paymentMethod === 'later') {
+        // Save as draft and redirect to dashboard
+        clearStorage()
+        router.push('/dashboard?registered=pending')
         return
       }
-      
-      const orderResult = await orderResponse.json()
-      const competitionNames = selectedCompetitions.map(c => COMPETITIONS.find(comp => comp.id === c)?.name).join(', ')
 
-      const razorpay = new window.Razorpay({
+      // Initialize Razorpay payment
+      const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderResult.amount,
+        amount: orderData.amount,
         currency: 'INR',
-        name: 'RoboMania 2025',
-        description: 'Registration: ' + competitionNames,
-        order_id: orderResult.orderId,
-        handler: async (response: { razorpay_payment_id: string; razorpay_signature: string }) => {
-          try {
-            const verifyResponse = await fetch('/api/payment/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: orderResult.orderId,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                competitions: selectedCompetitions,
-                teamId
-              })
+        name: 'Robomania 2025',
+        description: 'Competition Registration',
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          // Verify payment
+          const verifyResponse = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              registrationId: orderData.registrationId
             })
-            if (verifyResponse.ok) { router.push('/dashboard?status=success') }
-            else { setError('Payment verification failed. Contact support.') }
-          } catch { setError('Payment verification failed. Contact support.') }
-        },
-        modal: {
-          ondismiss: () => {
-            // User closed payment modal - registration saved as draft
-            setError('Payment cancelled. Your registration is saved as draft. You can pay later from your dashboard.')
-            setTimeout(() => router.push('/dashboard?status=pending'), 3000)
+          })
+
+          if (verifyResponse.ok) {
+            clearStorage()
+            setShowSuccess(true)
+          } else {
+            setError('Payment verification failed. Please contact support.')
           }
         },
-        prefill: { email: teamData.contactEmail, contact: teamData.contactPhone },
-        theme: { color: '#3b82f6' }
-      })
+        prefill: {
+          name: formData.leaderName,
+          email: formData.leaderEmail,
+          contact: formData.leaderPhone
+        },
+        theme: {
+          color: '#2563eb'
+        },
+        modal: {
+          ondismiss: function() {
+            setSubmitting(false)
+            setError('Payment cancelled. Your registration has been saved as draft.')
+          }
+        }
+      }
+
+      const razorpay = new window.Razorpay(options)
       razorpay.open()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed'
-      setError(errorMessage)
-    } finally { setSubmitting(false) }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  if (status === 'loading' || loading) {
-    return (
-      <div className="min-h-screen bg-theme-bg flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-theme-accent" />
-      </div>
-    )
-  }
-
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-theme-bg flex items-center justify-center px-4">
-        <div className="bg-theme-bg-card border border-theme-border rounded-2xl p-8 max-w-md text-center">
-          <h2 className="text-2xl font-bold text-theme-text mb-4">Sign In Required</h2>
-          <p className="text-theme-text-secondary mb-6">Please sign in to register your team for RoboMania 2025</p>
-          <a href="/auth/login" className="inline-block px-6 py-3 bg-theme-accent hover:bg-theme-accent-hover text-white rounded-xl transition-colors">Sign In</a>
-        </div>
-      </div>
-    )
-  }
-
-  const steps = hasExistingTeam 
-    ? [{ id: 1, title: 'Select Events', icon: '🎯' }, { id: 3, title: 'Robot Details', icon: '🤖' }, { id: 4, title: 'Review & Pay', icon: '💳' }]
-    : [{ id: 1, title: 'Select Events', icon: '🎯' }, { id: 2, title: 'Team Details', icon: '👥' }, { id: 3, title: 'Robot Details', icon: '🤖' }, { id: 4, title: 'Review & Pay', icon: '💳' }]
-
-  const getStepClass = (stepId: number) => {
-    const base = 'flex items-center justify-center w-10 h-10 rounded-full text-lg '
-    return base + (currentStep >= stepId ? 'bg-theme-accent text-white' : 'bg-theme-bg-secondary text-theme-text-muted border border-theme-border')
-  }
-
-  const getCompCardClass = (compId: string) => {
-    const isRegistered = isCompetitionRegistered(compId)
-    const isSelected = selectedCompetitions.includes(compId)
-    const base = 'relative p-5 rounded-xl border-2 transition-all cursor-pointer '
-    if (isRegistered) return base + 'bg-green-500/10 border-green-500/30 cursor-not-allowed'
-    if (isSelected) return base + 'bg-theme-accent/10 border-theme-accent'
-    return base + 'bg-theme-bg-secondary border-theme-border hover:border-theme-accent/50'
+  if (loading) {
+    return <LoadingState message="Loading registration form..." />
   }
 
   return (
-    <div className="min-h-screen bg-theme-bg pt-24 pb-16">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-theme-text mb-2">
-            {hasExistingTeam ? 'Register for More Events' : 'Team Registration'}
-          </h1>
-          <p className="text-theme-text-secondary">
-            {hasExistingTeam ? 'Welcome back, ' + teamData.teamName + '! Select additional competitions to join.' : 'Register your team for RoboMania 2025 competitions'}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto mt-20">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Team Registration</h1>
+          <p className="text-gray-600">Complete your registration for Robomania 2025</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Tip: Use arrow keys (← →) to navigate between steps
           </p>
+          {autoSaving && (
+            <div className="flex items-center justify-center gap-2 mt-2 text-sm text-green-600">
+              <Save className="w-4 h-4" />
+              <span>Draft saved automatically</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-center mb-10">
-          <div className="flex items-center gap-2">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={getStepClass(step.id)}>
-                  {currentStep > step.id ? <Check className="w-5 h-5" /> : step.icon}
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={'w-12 h-0.5 mx-2 ' + (currentStep > step.id ? 'bg-theme-accent' : 'bg-theme-border')} />
-                )}
+        {/* Draft Prompt */}
+        {showDraftPrompt && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-1">Resume Previous Registration?</h3>
+                <p className="text-sm text-blue-700">We found a saved draft of your registration.</p>
               </div>
-            ))}
+              <div className="flex gap-2">
+                <button
+                  onClick={loadDraft}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                >
+                  Load Draft
+                </button>
+                <button
+                  onClick={discardDraft}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
+                >
+                  Start Fresh
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-center">{error}</div>
         )}
 
-        <div className="bg-theme-bg-card border border-theme-border rounded-2xl p-6 md:p-8">
-          
-          {currentStep === 1 && (
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h2 className="text-xl font-semibold text-theme-text mb-6">Select Competitions</h2>
-              <div className="grid gap-4">
-                {COMPETITIONS.map(comp => {
-                  const isRegistered = isCompetitionRegistered(comp.id)
-                  const isSelected = selectedCompetitions.includes(comp.id)
-                  return (
-                    <div key={comp.id} onClick={() => toggleCompetition(comp.id)} className={getCompCardClass(comp.id)}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <span className="text-3xl">{comp.icon}</span>
-                          <div>
-                            <h3 className="text-lg font-semibold text-theme-text">{comp.name}</h3>
-                            <p className="text-sm text-theme-text-muted">{comp.description}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          {isRegistered ? (
-                            <span className="inline-flex items-center gap-1 text-green-400 text-sm"><Check className="w-4 h-4" /> Registered</span>
-                          ) : (
-                            <><p className="text-xl font-bold text-theme-text">₹{comp.price}</p><p className="text-xs text-theme-text-muted">per team</p></>
-                          )}
-                        </div>
-                      </div>
-                      {isSelected && !isRegistered && <div className="absolute top-3 right-3"><Check className="w-5 h-5 text-theme-accent" /></div>}
+              <h3 className="font-semibold text-red-900 mb-1">Error</h3>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+          <ModernStepIndicator 
+            currentStep={currentStep} 
+            steps={STEP_DATA}
+          />
+
+          {/* Step Content with Animations */}
+          <div className="mt-8">
+            <StepTransition currentStep={currentStep} direction={stepDirection}>
+              {/* Step 1: Select Competitions */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {COMPETITIONS.map((competition) => (
+                      <CompetitionCard
+                        key={competition.id}
+                        competition={competition}
+                        isSelected={formData.selectedCompetitions.includes(competition.id)}
+                        onToggle={() => handleCompetitionToggle(competition.id)}
+                        onPreview={() => setPreviewCompetition(competition.slug)}
+                      />
+                    ))}
+                  </div>
+                  {getFieldError('competitions') && (
+                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{getFieldError('competitions')}</span>
                     </div>
-                  )
-                })}
-              </div>
-              {selectedCompetitions.length > 0 && (
-                <div className="mt-6 p-4 bg-theme-bg-secondary rounded-xl flex justify-between items-center">
-                  <span className="text-theme-text-secondary">{selectedCompetitions.length} competition{selectedCompetitions.length > 1 ? 's' : ''} selected</span>
-                  <span className="text-xl font-bold text-theme-text">Total: ₹{getTotalAmount()}</span>
+                  )}
+                  {formData.selectedCompetitions.length > 0 && (
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-700">Total Amount:</span>
+                        <span className="text-2xl font-bold text-blue-600">
+                          ₹{calculateTotal(formData.selectedCompetitions)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {currentStep === 2 && !hasExistingTeam && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-theme-text mb-4">Team Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" name="teamName" placeholder="Team Name *" value={teamData.teamName} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                <input type="text" name="institution" placeholder="Institution/College *" value={teamData.institution} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="email" name="contactEmail" placeholder="Contact Email *" value={teamData.contactEmail} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                <input type="tel" name="contactPhone" placeholder="Contact Phone *" value={teamData.contactPhone} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-              </div>
-              <h3 className="text-lg font-medium text-theme-text pt-4">Team Leader</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="text" name="leaderName" placeholder="Leader Name *" value={teamData.leaderName} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                <input type="email" name="leaderEmail" placeholder="Leader Email *" value={teamData.leaderEmail} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                <input type="tel" name="leaderPhone" placeholder="Leader Phone *" value={teamData.leaderPhone} onChange={handleTeamInputChange} className="w-full px-4 py-3 bg-theme-bg-secondary border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-              </div>
-              <div className="pt-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-theme-text">Team Members (Min 3, Max 6)</h3>
-                  {teamData.members.length < 6 && <button type="button" onClick={addMember} className="text-sm text-theme-accent hover:text-theme-accent-hover">+ Add Member</button>}
-                </div>
-                <div className="space-y-4">
-                  {teamData.members.map((member, index) => (
-                    <div key={index} className="p-4 bg-theme-bg-secondary rounded-xl">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm text-theme-text-muted">Member {index + 1}</span>
-                        {teamData.members.length > 3 && <button type="button" onClick={() => removeMember(index)} className="text-sm text-red-400 hover:text-red-300">Remove</button>}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <input type="text" placeholder="Name *" value={member.name} onChange={(e) => handleMemberChange(index, 'name', e.target.value)} className="w-full px-3 py-2 bg-theme-bg-card border border-theme-border rounded-lg text-theme-text placeholder-theme-text-muted text-sm focus:outline-none focus:border-theme-accent" />
-                        <input type="email" placeholder="Email *" value={member.email} onChange={(e) => handleMemberChange(index, 'email', e.target.value)} className="w-full px-3 py-2 bg-theme-bg-card border border-theme-border rounded-lg text-theme-text placeholder-theme-text-muted text-sm focus:outline-none focus:border-theme-accent" />
-                        <input type="tel" placeholder="Phone *" value={member.phone} onChange={(e) => handleMemberChange(index, 'phone', e.target.value)} className="w-full px-3 py-2 bg-theme-bg-card border border-theme-border rounded-lg text-theme-text placeholder-theme-text-muted text-sm focus:outline-none focus:border-theme-accent" />
-                        <input type="text" placeholder="Role *" value={member.role} onChange={(e) => handleMemberChange(index, 'role', e.target.value)} className="w-full px-3 py-2 bg-theme-bg-card border border-theme-border rounded-lg text-theme-text placeholder-theme-text-muted text-sm focus:outline-none focus:border-theme-accent" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+            {/* Step 2: Team Details */}
+            {currentStep === 2 && (
+              <TeamForm
+                teamName={formData.teamName}
+                leaderName={formData.leaderName}
+                leaderEmail={formData.leaderEmail}
+                leaderPhone={formData.leaderPhone}
+                institution={formData.institution}
+                teamMembers={formData.teamMembers}
+                onChange={handleTeamDataChange}
+                getFieldError={getFieldError}
+                removeFieldError={removeFieldError}
+              />
+            )}
 
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-theme-text mb-4">Robot Details</h2>
-              <p className="text-theme-text-secondary text-sm mb-6">Enter robot specifications for each competition you selected.</p>
-              {selectedCompetitions.map(compId => {
-                const comp = COMPETITIONS.find(c => c.id === compId)
-                const robot = robotDetails[compId]
-                return (
-                  <div key={compId} className="p-5 bg-theme-bg-secondary rounded-xl border border-theme-border">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-2xl">{comp?.icon}</span>
-                      <h3 className="text-lg font-semibold text-theme-text">{comp?.name} Robot</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input type="text" placeholder="Robot Name *" value={robot.robotName} onChange={(e) => handleRobotChange(compId, 'robotName', e.target.value)} className="w-full px-4 py-3 bg-theme-bg-card border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                      <input type="text" placeholder="Weight (kg) *" value={robot.robotWeight} onChange={(e) => handleRobotChange(compId, 'robotWeight', e.target.value)} className="w-full px-4 py-3 bg-theme-bg-card border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                      <input type="text" placeholder="Dimensions (LxWxH cm) *" value={robot.robotDimensions} onChange={(e) => handleRobotChange(compId, 'robotDimensions', e.target.value)} className="w-full px-4 py-3 bg-theme-bg-card border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />
-                      {compId === 'ROBOWARS' && <input type="text" placeholder="Weapon Type *" value={robot.weaponType} onChange={(e) => handleRobotChange(compId, 'weaponType', e.target.value)} className="w-full px-4 py-3 bg-theme-bg-card border border-theme-border rounded-xl text-theme-text placeholder-theme-text-muted focus:outline-none focus:border-theme-accent" />}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+            {/* Step 3: Robot Details */}
+            {currentStep === 3 && (
+              <RobotForm
+                competitions={formData.selectedCompetitions}
+                robotDetails={formData.robotDetails}
+                onChange={handleRobotDetailChange}
+                getFieldError={getFieldError}
+                removeFieldError={removeFieldError}
+              />
+            )}
 
-          {currentStep === 4 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-theme-text mb-4">Review & Confirm</h2>
-              <div className="p-5 bg-theme-bg-secondary rounded-xl">
-                <h3 className="text-lg font-medium text-theme-text mb-3">Team Information</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <span className="text-theme-text-muted">Team Name:</span><span className="text-theme-text">{teamData.teamName}</span>
-                  <span className="text-theme-text-muted">Institution:</span><span className="text-theme-text">{teamData.institution}</span>
-                  <span className="text-theme-text-muted">Leader:</span><span className="text-theme-text">{teamData.leaderName}</span>
-                  <span className="text-theme-text-muted">Members:</span><span className="text-theme-text">{teamData.members.filter(m => m.name).length} members</span>
-                </div>
-              </div>
-              <div className="p-5 bg-theme-bg-secondary rounded-xl">
-                <h3 className="text-lg font-medium text-theme-text mb-3">Selected Competitions</h3>
-                <div className="space-y-3">
-                  {selectedCompetitions.map(compId => {
-                    const comp = COMPETITIONS.find(c => c.id === compId)
-                    const robot = robotDetails[compId]
-                    return (
-                      <div key={compId} className="flex justify-between items-center p-3 bg-theme-bg-card rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{comp?.icon}</span>
-                          <div><p className="text-theme-text font-medium">{comp?.name}</p><p className="text-xs text-theme-text-muted">Robot: {robot.robotName}</p></div>
-                        </div>
-                        <span className="text-theme-text font-semibold">₹{comp?.price}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="mt-4 pt-4 border-t border-theme-border flex justify-between items-center">
-                  <span className="text-theme-text font-medium">Total Amount</span>
-                  <span className="text-2xl font-bold text-theme-accent">₹{getTotalAmount()}</span>
-                </div>
-              </div>
-              <p className="text-xs text-theme-text-muted text-center">By proceeding, you agree to our terms and conditions. Registration fee is non-refundable.</p>
-            </div>
-          )}
-
-          <div className="flex justify-between mt-8 pt-6 border-t border-theme-border">
-            {currentStep > 1 ? (
-              <button type="button" onClick={prevStep} className="flex items-center gap-2 px-6 py-3 text-theme-text-secondary hover:text-theme-text transition-colors">
-                <ChevronLeft className="w-4 h-4" /> Back
-              </button>
-            ) : <div />}
-            
-            {currentStep < 4 ? (
-              <button type="button" onClick={nextStep} className="flex items-center gap-2 px-6 py-3 bg-theme-accent hover:bg-theme-accent-hover text-white rounded-xl transition-colors">
-                Continue <ChevronRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <div className="flex items-center gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => handleSubmit(false)} 
-                  disabled={submitting} 
-                  className="flex items-center gap-2 px-6 py-3 border border-theme-border text-theme-text hover:bg-theme-bg-secondary rounded-xl transition-colors disabled:opacity-50"
-                >
-                  Save & Pay Later
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleSubmit(true)} 
-                  disabled={submitting} 
-                  className="flex items-center gap-2 px-8 py-3 bg-theme-accent hover:bg-theme-accent-hover text-white rounded-xl transition-colors disabled:opacity-50"
-                >
-                  {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <>Pay ₹{getTotalAmount()}</>}
-                </button>
+            {/* Step 4: Review & Payment */}
+            {currentStep === 4 && (
+              <div className="space-y-8">
+                <ReviewSummary
+                  teamData={{
+                    teamName: formData.teamName,
+                    leaderName: formData.leaderName,
+                    leaderEmail: formData.leaderEmail,
+                    leaderPhone: formData.leaderPhone,
+                    institution: formData.institution,
+                    teamMembers: formData.teamMembers
+                  }}
+                  selectedCompetitions={formData.selectedCompetitions}
+                  robotDetails={formData.robotDetails}
+                  onEditStep={handleEditStep}
+                />
+                
+                {/* Payment Options */}
+                <PaymentOptions
+                  totalAmount={calculateTotal(formData.selectedCompetitions)}
+                  onPayNow={() => handleSubmit('now')}
+                  onPayLater={() => handleSubmit('later')}
+                  isLoading={submitting}
+                />
               </div>
             )}
+            </StepTransition>
           </div>
+
+          {/* Navigation Buttons - Hidden on Step 4 (Payment has own buttons) */}
+          {currentStep < 4 && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-8 pt-6 border-t gap-3">
+              <button
+                onClick={handlePrevStep}
+                disabled={currentStep === 1 || submitting}
+                className="
+                  flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium
+                  bg-gray-100 text-gray-700 hover:bg-gray-200
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all duration-200 min-h-[44px]
+                "
+              >
+                <ChevronLeft className="w-5 h-5" />
+                Previous
+              </button>
+
+              <button
+                onClick={handleNextStep}
+                className="
+                  flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium
+                  bg-blue-600 text-white hover:bg-blue-700
+                  transition-all duration-200 shadow-lg hover:shadow-xl min-h-[44px]
+                "
+              >
+                Next
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {/* Back button for payment step */}
+          {currentStep === 4 && (
+            <div className="mt-6">
+              <button
+                onClick={handlePrevStep}
+                disabled={submitting}
+                className="
+                  flex items-center gap-2 px-6 py-3 rounded-lg font-medium
+                  bg-gray-100 text-gray-700 hover:bg-gray-200
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all duration-200
+                "
+              >
+                <ChevronLeft className="w-5 h-5" />
+                Back to Review
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Competition Preview Modal */}
+        {previewCompetition && (
+          <CompetitionPreview
+            competitionSlug={previewCompetition}
+            isOpen={!!previewCompetition}
+            onClose={() => setPreviewCompetition(null)}
+          />
+        )}
+
+        {/* Success Celebration */}
+        {showSuccess && (
+          <SuccessCelebration
+            onComplete={() => router.push('/dashboard?registered=success')}
+          />
+        )}
+
+        {/* Razorpay Script */}
+        <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </div>
     </div>
   )
