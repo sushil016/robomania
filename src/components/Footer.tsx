@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin, Phone } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin, Phone, Linkedin } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -28,7 +28,7 @@ export default function Footer() {
                 href="#"
                 className="text-gray-600 hover:text-[#00CED1] transition-colors duration-200"
               >
-                <Facebook size={20} />
+                <Linkedin size={20} />
               </motion.a>
               <motion.a
                 whileHover={{ scale: 1.1 }}
@@ -61,7 +61,7 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-bold font-orbitron mb-6">Quick Links</h3>
             <ul className="space-y-4">
-              {['Event Details', 'Registration', 'Live Updates', 'Contact'].map((item) => (
+              {['Event Details', 'Contact'].map((item) => (
                 <li key={item}>
                   <Link 
                     href={`/${item.toLowerCase().replace(' ', '-')}`}
@@ -94,22 +94,6 @@ export default function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div>
-            <h3 className="text-lg font-bold font-orbitron mb-6">Newsletter</h3>
-            <p className="text-gray-600 mb-4">
-              Subscribe to stay updated with latest news and updates.
-            </p>
-            <form className="flex">
-              <input
-                type="email"
-                placeholder="Your email"
-                className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#00CED1] text-gray-900"
-              />
-              <button className="px-4 py-2 bg-gradient-to-r from-[#FF4500] to-[#00CED1] text-white rounded-r-lg">
-                Subscribe
-              </button>
-            </form>
-          </div>
         </div>
 
         <div className="mt-12 pt-8 border-t border-gray-300 text-center text-gray-600">

@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { BotManagement } from '@/components/BotManagement'
 
 interface BotDetails {
   id: string
@@ -30,6 +31,17 @@ interface CompetitionRegistration {
   payment_date?: string
   bot_id?: string
   bots?: BotDetails
+}
+
+interface CompetitionUsage {
+  competition_type: string
+  competition_name: string
+  payment_status: string
+  registration_status: string
+}
+
+interface BotWithUsage extends BotDetails {
+  competitions: CompetitionUsage[]
 }
 
 interface RegistrationData {
@@ -57,6 +69,8 @@ const COMPETITIONS = {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null)
+  const [botsWithUsage, setBotsWithUsage] = useState<BotWithUsage[]>([])
+  const [loadingBots, setLoadingBots] = useState(false)
   const [processingPayment, setProcessingPayment] = useState(false)
   const [verifyingPayment, setVerifyingPayment] = useState<string | null>(null) // Track which payment is being verified
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
@@ -95,6 +109,9 @@ export default function Dashboard() {
           const data = await response.json()
           setRegistrationData(data)
           console.log('Dashboard data:', data)
+          
+          // Fetch bots with competition usage
+          await fetchBotsWithUsage(data)
         }
       } catch (error) {
         console.error('Failed to fetch data:', error)
@@ -106,6 +123,58 @@ export default function Dashboard() {
       fetchData()
     }
   }, [user])
+
+  const fetchBotsWithUsage = async (regData: RegistrationData) => {
+    if (!regData.savedBots || regData.savedBots.length === 0) {
+      setBotsWithUsage([])
+      return
+    }
+
+    setLoadingBots(true)
+    try {
+      // Map bots to include their competition usage
+      const botsWithCompetitions: BotWithUsage[] = regData.savedBots.map(bot => {
+        // Find all competitions that use this bot
+        const competitions = regData.registeredCompetitions
+          .filter(comp => comp.bot_id === bot.id)
+          .map(comp => ({
+            competition_type: comp.competition_type,
+            competition_name: COMPETITIONS[comp.competition_type as keyof typeof COMPETITIONS]?.name || comp.competition_type,
+            payment_status: comp.payment_status,
+            registration_status: comp.registration_status
+          }))
+
+        return {
+          ...bot,
+          competitions
+        }
+      })
+
+      setBotsWithUsage(botsWithCompetitions)
+    } catch (error) {
+      console.error('Failed to process bots with usage:', error)
+      setBotsWithUsage([])
+    } finally {
+      setLoadingBots(false)
+    }
+  }
+
+  const handleRefreshBots = async () => {
+    if (!user?.email) return
+    setLoadingBots(true)
+    try {
+      const response = await fetch(`/api/check-registration?email=${encodeURIComponent(user.email)}`)
+      if (response.ok) {
+        const data = await response.json()
+        setRegistrationData(data)
+        await fetchBotsWithUsage(data)
+      }
+    } catch (error) {
+      console.error('Failed to refresh bots:', error)
+    } finally {
+      setLoadingBots(false)
+    }
+  }
 
   const handlePayment = async (competitionId: string, amount: number, gateway: 'razorpay' | 'phonepe' = 'razorpay') => {
     if (!registrationData?.teamId) return
@@ -468,6 +537,20 @@ export default function Dashboard() {
                 </motion.button>
               </motion.div>
             )}
+
+            {/* Bot Management Section */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.7 }}
+              className="mt-8"
+            >
+              <BotManagement 
+                bots={botsWithUsage} 
+                isLoading={loadingBots} 
+                onRefresh={handleRefreshBots}
+              />
+            </motion.div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }} className="space-y-4">

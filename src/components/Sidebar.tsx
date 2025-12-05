@@ -10,7 +10,6 @@ const navItems = [
   { name: 'CONTACT', href: '/contact', icon: Phone },
   { name: 'ABOUT US', href: '/about', icon: Users },
   { name: 'SPONSORS', href: '/sponsors', icon: Award },
-  { name: 'STORE', href: '/store', icon: ShoppingCart },
 ]
 
 export default function Sidebar() {

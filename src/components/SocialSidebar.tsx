@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Facebook, Twitter, Instagram, Youtube, Linkedin, Mail } from 'lucide-react'
 
 const socialItems = [
-  { name: 'Facebook', href: 'https://facebook.com', icon: Facebook, color: '#1877F2' },
   { name: 'Twitter', href: 'https://twitter.com', icon: Twitter, color: '#1DA1F2' },
   { name: 'Instagram', href: 'https://instagram.com', icon: Instagram, color: '#E4405F' },
   { name: 'YouTube', href: 'https://youtube.com', icon: Youtube, color: '#FF0000' },

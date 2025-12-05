@@ -178,38 +178,80 @@ export async function POST(request: Request) {
       console.log(`Saving ${competitionsArray.length} competition registrations...`)
       
       for (const comp of competitionsArray) {
-        const { data: existingReg } = await supabaseAdmin
-          .from('competition_registrations')
-          .select('id')
-          .eq('team_id', finalTeamId)
-          .eq('competition_type', comp.competition.toUpperCase())
-          .single()
+        let botIdToUse = comp.botId || null
 
-        if (existingReg) {
-          await supabaseAdmin
-            .from('competition_registrations')
-            .update({ 
-              payment_id: merchantOrderId, 
-              payment_status: 'PENDING', 
-              amount: comp.amount,
-              payment_gateway: 'PHONEPE'
+        // Create bot in database if robot details are provided and botId is not already set
+        if (!botIdToUse && (comp.robotName || comp.robotWeight || comp.robotDimensions)) {
+          console.log(`Creating bot for ${comp.competition}:`, comp.robotName)
+          
+          const { data: newBot, error: botError } = await supabaseAdmin
+            .from('bots')
+            .insert({
+              team_id: finalTeamId,
+              bot_name: comp.robotName || `Bot for ${comp.competition}`,
+              weight: comp.robotWeight || 5,
+              dimensions: comp.robotDimensions || '30x30x30',
+              weapon_type: comp.weaponType || null,
+              is_weapon_bot: !!(comp.weaponType && comp.weaponType.trim() !== '')
             })
-            .eq('id', existingReg.id)
-          console.log(`✅ Updated registration for ${comp.competition}`)
-        } else {
+            .select('id')
+            .single()
+
+          if (botError) {
+            console.error(`❌ Failed to create bot for ${comp.competition}:`, botError)
+          } else if (newBot) {
+            botIdToUse = newBot.id
+            console.log(`✅ Bot created with ID: ${botIdToUse}`)
+          }
+        }
+
+        // Check for duplicate entries - ONLY for RoboWars with same bot
+        const competitionType = comp.competition.toUpperCase()
+        let shouldCreateNew = true
+
+        if (competitionType === 'ROBOWARS' && botIdToUse) {
+          // For RoboWars: check if same team + same bot already has an entry
+          const { data: existingReg } = await supabaseAdmin
+            .from('competition_registrations')
+            .select('id')
+            .eq('team_id', finalTeamId)
+            .eq('competition_type', competitionType)
+            .eq('bot_id', botIdToUse)
+            .single()
+
+          if (existingReg) {
+            // Update existing RoboWars entry with same bot
+            await supabaseAdmin
+              .from('competition_registrations')
+              .update({ 
+                payment_id: merchantOrderId, 
+                payment_status: 'PENDING', 
+                amount: comp.amount,
+                payment_gateway: 'PHONEPE'
+              })
+              .eq('id', existingReg.id)
+            
+            console.log(`✅ Updated existing RoboWars registration (same bot)`)
+            shouldCreateNew = false
+          }
+        }
+        // For RoboRace and RoboSoccer: ALWAYS create new entry (multiple entries allowed)
+
+        if (shouldCreateNew) {
           await supabaseAdmin
             .from('competition_registrations')
             .insert({ 
               team_id: finalTeamId, 
-              competition_type: comp.competition.toUpperCase(), 
-              bot_id: comp.botId || null, 
+              competition_type: competitionType, 
+              bot_id: botIdToUse, 
               amount: comp.amount, 
               payment_id: merchantOrderId, 
               payment_status: 'PENDING', 
               registration_status: 'PENDING',
               payment_gateway: 'PHONEPE'
             })
-          console.log(`✅ Created registration for ${comp.competition}`)
+          
+          console.log(`✅ Created new registration for ${comp.competition}${botIdToUse ? ` with bot ${botIdToUse}` : ''}`)
         }
       }
     }
