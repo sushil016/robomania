@@ -6,7 +6,7 @@ declare global {
   }
 }
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Save } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -236,6 +236,70 @@ export default function TeamRegistration() {
     return () => clearInterval(interval)
   }, [formData, hasExistingTeam])
 
+  // Navigation handlers (defined before keyboard shortcuts useEffect)
+  const handleNextStep = useCallback(() => {
+    clearErrors()
+    
+    // Validate current step
+    let isValid = false
+    
+    switch (currentStep) {
+      case 1:
+        isValid = validateStep1(formData.selectedCompetitions)
+        break
+      case 2:
+        isValid = validateStep2({
+          teamName: formData.teamName,
+          leaderName: formData.leaderName,
+          leaderEmail: formData.leaderEmail,
+          leaderPhone: formData.leaderPhone,
+          institution: formData.institution,
+          teamMembers: formData.teamMembers
+        })
+        break
+      case 3:
+        isValid = validateStep3(formData.robotDetails)
+        break
+      default:
+        isValid = true
+    }
+
+    if (isValid) {
+      setStepDirection('forward')
+      const nextStep = Math.min(currentStep + 1, 4)
+      setCurrentStep(nextStep)
+      
+      // Announce step change to screen readers
+      const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
+      announceToScreenReader(`Moved to step ${nextStep}: ${stepNames[nextStep]}`)
+      
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+    } else {
+      setError('Please fill in all required fields correctly')
+      
+      // Announce validation errors to screen readers
+      announceToScreenReader('Validation failed. Please check the form for errors.')
+      
+      // Focus first error field after a brief delay
+      setTimeout(() => focusFirstError(validationErrors), 100)
+      
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+    }
+  }, [currentStep, formData, validateStep1, validateStep2, validateStep3, clearErrors, validationErrors])
+
+  const handlePrevStep = useCallback(() => {
+    setStepDirection('backward')
+    const prevStep = Math.max(currentStep - 1, 1)
+    setCurrentStep(prevStep)
+    clearErrors()
+    
+    // Announce step change to screen readers
+    const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
+    announceToScreenReader(`Moved back to step ${prevStep}: ${stepNames[prevStep]}`)
+    
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }, [currentStep, clearErrors])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -263,7 +327,7 @@ export default function TeamRegistration() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentStep, submitting, previewCompetition, showDraftPrompt])
+  }, [currentStep, submitting, previewCompetition, showDraftPrompt, handleNextStep, handlePrevStep])
 
   const loadDraft = () => {
     const draft = loadFromStorage()
@@ -330,69 +394,6 @@ export default function TeamRegistration() {
         }
       }
     }))
-  }
-
-  const handleNextStep = () => {
-    clearErrors()
-    
-    // Validate current step
-    let isValid = false
-    
-    switch (currentStep) {
-      case 1:
-        isValid = validateStep1(formData.selectedCompetitions)
-        break
-      case 2:
-        isValid = validateStep2({
-          teamName: formData.teamName,
-          leaderName: formData.leaderName,
-          leaderEmail: formData.leaderEmail,
-          leaderPhone: formData.leaderPhone,
-          institution: formData.institution,
-          teamMembers: formData.teamMembers
-        })
-        break
-      case 3:
-        isValid = validateStep3(formData.robotDetails)
-        break
-      default:
-        isValid = true
-    }
-
-    if (isValid) {
-      setStepDirection('forward')
-      const nextStep = Math.min(currentStep + 1, 4)
-      setCurrentStep(nextStep)
-      
-      // Announce step change to screen readers
-      const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
-      announceToScreenReader(`Moved to step ${nextStep}: ${stepNames[nextStep]}`)
-      
-      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
-    } else {
-      setError('Please fill in all required fields correctly')
-      
-      // Announce validation errors to screen readers
-      announceToScreenReader('Validation failed. Please check the form for errors.')
-      
-      // Focus first error field after a brief delay
-      setTimeout(() => focusFirstError(validationErrors), 100)
-      
-      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
-    }
-  }
-
-  const handlePrevStep = () => {
-    setStepDirection('backward')
-    const prevStep = Math.max(currentStep - 1, 1)
-    setCurrentStep(prevStep)
-    clearErrors()
-    
-    // Announce step change to screen readers
-    const stepNames = ['', 'Select Competitions', 'Team Details', 'Robot Details', 'Review & Payment']
-    announceToScreenReader(`Moved back to step ${prevStep}: ${stepNames[prevStep]}`)
-    
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
   }
 
   const handleEditStep = (step: number) => {
