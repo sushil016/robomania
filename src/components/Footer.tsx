@@ -61,7 +61,7 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-bold font-orbitron mb-6">Quick Links</h3>
             <ul className="space-y-4">
-              {['Event Details', 'Contact'].map((item) => (
+              {['Event Details', 'Contact', 'About', 'Sponsors'].map((item) => (
                 <li key={item}>
                   <Link 
                     href={`/${item.toLowerCase().replace(' ', '-')}`}
@@ -71,6 +71,53 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Sponsors */}
+          <div>
+            <h3 className="text-lg font-bold font-orbitron mb-6">Our Sponsors</h3>
+            <ul className="space-y-4">
+              <li>
+                <a 
+                  href="https://www.redbull.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-red-600 transition-colors duration-200"
+                >
+                  Red Bull
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://pntrobotics.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-orange-600 transition-colors duration-200"
+                >
+                  PNT Robotics
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.hitechnology.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-cyan-600 transition-colors duration-200"
+                >
+                  Hi Technology
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.campa.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-green-600 transition-colors duration-200"
+                >
+                  Campa Cola
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -84,7 +131,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center text-gray-600">
                 <Mail className="w-5 h-5 mr-3 text-[#00CED1]" />
-                <span>teamrobonauts@gmail.com</span>
+                <span>teamrobonauts211@gmail.com</span>
               </li>
               <li className="flex items-center text-gray-600">
                 <Phone className="w-5 h-5 mr-3 text-[#00CED1]" />
@@ -92,8 +139,6 @@ export default function Footer() {
               </li>
             </ul>
           </div>
-
-          {/* Newsletter */}
         </div>
 
         <div className="mt-12 pt-8 border-t border-gray-300 text-center text-gray-600">

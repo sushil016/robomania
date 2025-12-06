@@ -3,6 +3,18 @@
 @tailwind utilities;
 
 @layer base {
+  /* Prevent horizontal overflow */
+  html,
+  body {
+    @apply overflow-x-hidden;
+    max-width: 100vw;
+    position: relative;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
   :root {
     /* ==========================================
        THEME COLORS - EDIT THESE TO CUSTOMIZE

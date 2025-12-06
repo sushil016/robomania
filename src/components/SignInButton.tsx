@@ -11,13 +11,13 @@ export function SignInButton() {
       whileTap={{ scale: 0.95 }}
       className="relative inline-flex group"
     >
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF4500] to-[#00CED1] rounded-full blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-300"></div>
       <Link
         href="/auth/login"
-        className="relative px-4 py-3 bg-white rounded-full leading-none flex items-center space-x-2"
+        className="relative px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 rounded-full leading-none flex items-center space-x-2 font-semibold shadow-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300"
       >
-        
-        <span className="text-neutral-900 group-hover:text-gray-900 transition duration-200">
+        <LogIn className="w-4 h-4 text-white" />
+        <span className="text-white">
           Sign In
         </span>
       </Link>

@@ -1,11 +1,32 @@
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 import { supabaseAdmin } from '@/lib/supabase'
+import { headers } from 'next/headers'
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 })
+
+// Helper function to get the base URL from request
+async function getBaseUrl(): Promise<string> {
+  // Priority: 1. NEXT_PUBLIC_APP_URL env var, 2. Request headers, 3. Default
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+  
+  const headersList = await headers()
+  const host = headersList.get('host') || headersList.get('x-forwarded-host')
+  const protocol = headersList.get('x-forwarded-proto') || 'https'
+  
+  if (host) {
+    // Use https for production domains
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1')
+    return `${isLocalhost ? 'http' : protocol}://${host}`
+  }
+  
+  return 'http://localhost:3000'
+}
 
 interface CompetitionData {
   competition: string
@@ -30,6 +51,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { amount, teamId, competitions, userEmail, isNewTeam, teamData, robotDetails, paymentMethod } = body
+
+    // Get the base URL from request headers
+    const baseUrl = await getBaseUrl()
+    console.log('📍 Base URL for API calls:', baseUrl)
 
     console.log('Create order request:', { 
       teamId, 
@@ -70,7 +95,7 @@ export async function POST(request: Request) {
     if (!teamId && teamData && finalUserEmail) {
       console.log('Creating new team:', teamData.teamName)
       
-      const registerResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/register`, {
+      const registerResponse = await fetch(`${baseUrl}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

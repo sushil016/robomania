@@ -20,7 +20,7 @@ export default function Sidebar() {
       transition={{ duration: 0.5 }}
       className="fixed left-4 top-1/4 -translate-y-1/2 z-40 hidden lg:block"
     >
-      <div className="bg-white/10 backdrop-blur-2xl rounded-full shadow-2xl p-3">
+      <div className="bg-white/10 backdrop-blur-3xl rounded-full  shadow-2xl p-3">
         {/* Navigation Items */}
         <nav className="flex flex-col items-center justify-center space-y-4">
           {navItems.map((item, index) => (
@@ -37,11 +37,13 @@ export default function Sidebar() {
                 {/* Icon Container */}
                 <div className="relative">
                   {/* Background glow effect */}
-                  <div className="absolute inset-0 bg-[#00CED1] opacity-0 group-hover:opacity-30 blur-lg transition-opacity duration-300 rounded-full" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-cyan-500 opacity-0 group-hover:opacity-40 blur-lg transition-opacity duration-300 rounded-full" />
                   
                   {/* Icon with subtle background */}
-                  <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/20 group-hover:border-[#00CED1] group-hover:bg-white/10 transition-all duration-300">
-                    <item.icon className="w-5 h-5 text-white" strokeWidth={2} />
+                  <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/20 group-hover:border-white/40 group-hover:bg-white/10 transition-all duration-300">
+                    <item.icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" 
+                      strokeWidth={2}
+                      style={{ color: '#ff8126' }} />
                   </div>
                 </div>
 
@@ -54,7 +56,7 @@ export default function Sidebar() {
                 </motion.span>
 
                 {/* Connecting line on hover */}
-                <div className="absolute left-12 w-2 h-px bg-gradient-to-r from-[#FF4500] to-[#00CED1] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute left-12 w-2 h-px bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </Link>
             </motion.div>
           ))}

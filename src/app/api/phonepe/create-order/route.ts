@@ -3,6 +3,27 @@ import { supabaseAdmin } from '@/lib/supabase'
 import phonepeClient from '@/lib/phonepe'
 import { CreateSdkOrderRequest } from 'pg-sdk-node'
 import { v4 as uuid } from 'uuid'
+import { headers } from 'next/headers'
+
+// Helper function to get the base URL from request
+async function getBaseUrl(): Promise<string> {
+  // Priority: 1. NEXT_PUBLIC_APP_URL env var, 2. Request headers, 3. Default
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+  
+  const headersList = await headers()
+  const host = headersList.get('host') || headersList.get('x-forwarded-host')
+  const protocol = headersList.get('x-forwarded-proto') || 'https'
+  
+  if (host) {
+    // Use https for production domains
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1')
+    return `${isLocalhost ? 'http' : protocol}://${host}`
+  }
+  
+  return 'http://localhost:3000'
+}
 
 interface CompetitionData {
   competition: string
@@ -27,6 +48,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { amount, teamId, competitions, userEmail, isNewTeam, teamData, robotDetails } = body
+
+    // Get the base URL from request headers
+    const baseUrl = await getBaseUrl()
+    console.log('📍 Base URL for callbacks:', baseUrl)
 
     console.log('PhonePe create order request:', { 
       teamId, 
@@ -68,7 +93,7 @@ export async function POST(request: Request) {
     if (!teamId && teamData && finalUserEmail) {
       console.log('Creating new team:', teamData.teamName)
       
-      const registerResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/register`, {
+      const registerResponse = await fetch(`${baseUrl}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -156,9 +181,10 @@ export async function POST(request: Request) {
     const merchantOrderId = `ROBOMANIA_${finalTeamId.slice(0, 8)}_${uuid().slice(0, 8)}`
     const competitionNames = competitionsArray.map((c: CompetitionData) => c.competition).join(',')
     
-    // Include merchantOrderId in redirect URL for callback
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/phonepe/payment-callback?merchantOrderId=${merchantOrderId}`
+    // Include merchantOrderId in redirect URL for callback - use auto-detected baseUrl
+    const redirectUrl = `${baseUrl}/api/phonepe/payment-callback?merchantOrderId=${merchantOrderId}`
     
+    console.log('🔗 PhonePe redirect URL:', redirectUrl)
     console.log('Creating PhonePe order...')
     
     const sdkOrderRequest = CreateSdkOrderRequest.StandardCheckoutBuilder()

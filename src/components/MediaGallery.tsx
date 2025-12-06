@@ -9,46 +9,30 @@ const mediaItems = [
   {
     id: 1,
     type: 'image',
-    src: '/battlebots.jpg',
-    alt: 'Battle Robot Arena',
+    src: '/media-gallery/WhatsApp Image 2025-12-06 at 03.57.36 (2).jpeg',
+    alt: 'RoboMania Media 1',
     title: 'Arena Showdown'
   },
   {
     id: 2,
-    type: 'video',
-    thumbnail: '/battlebots.jpg',
-    src: '/video1.mp4',
-    alt: 'Robot Battle Highlights',
-    title: 'Best Moments'
+    type: 'image',
+    src: '/media-gallery/WhatsApp Image 2025-12-06 at 03.57.37.jpeg',
+    alt: 'RoboMania Media 2',
+    title: 'Robot Battle'
   },
   {
     id: 3,
     type: 'image',
-    src: '/battlebots.jpg',
-    alt: 'Team Workshop',
+    src: '/media-gallery/WhatsApp Image 2025-12-06 at 03.57.38.jpeg',
+    alt: 'RoboMania Media 3',
     title: 'Behind the Scenes'
   },
   {
     id: 4,
     type: 'image',
-    src: '/battlebots.jpg',
-    alt: 'Robot Design',
+    src: '/media-gallery/WhatsApp Image 2025-12-06 at 03.57.43 (1).jpeg',
+    alt: 'RoboMania Media 4',
     title: 'Engineering Excellence'
-  },
-  {
-    id: 5,
-    type: 'video',
-    thumbnail: '/battlebots.jpg',
-    src: '/video2.mp4',
-    alt: 'Championship Match',
-    title: 'Final Battle'
-  },
-  {
-    id: 6,
-    type: 'image',
-    src: '/battlebots.jpg',
-    alt: 'Award Ceremony',
-    title: 'Victory Moment'
   },
 ]
 
@@ -113,7 +97,7 @@ export default function MediaGallery() {
             >
               <div className="aspect-[16/9] relative">
                 <Image
-                  src={item.type === 'video' ? item.thumbnail || '' : item.src || ''}
+                  src={item.src}
                   alt={item.alt}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -121,23 +105,13 @@ export default function MediaGallery() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  {item.type === 'video' ? (
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="bg-[#FF4500] text-gray-900 p-4 rounded-full"
-                    >
-                      <Play size={24} />
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="bg-[#00CED1] text-gray-900 p-4 rounded-full"
-                    >
-                      <Expand size={24} />
-                    </motion.button>
-                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="bg-[#00CED1] text-gray-900 p-4 rounded-full"
+                  >
+                    <Expand size={24} />
+                  </motion.button>
                 </div>
               </div>
               

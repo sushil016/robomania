@@ -8,31 +8,38 @@ import { motion, AnimatePresence } from 'framer-motion'
 const highlights = [
   { 
     id: 1, 
-    src: '/battlebots.jpg',
-    alt: 'RoboMania 2024 Winner',
+    src: '/highlights/WhatsApp Image 2025-12-06 at 03.57.35.jpeg',
+    alt: 'RoboMania Event Highlight 1',
     title: 'Championship Battle',
-    description: 'Witness the epic finale of RoboMania 2024'
+    description: 'Witness the epic finale of RoboMania'
   },
   { 
     id: 2, 
-    src: '/battlebots.jpg',
-    alt: 'Exciting Robot Battle',
+    src: '/highlights/WhatsApp Image 2025-12-06 at 03.57.36 (1).jpeg',
+    alt: 'RoboMania Event Highlight 2',
     title: 'Arena Combat',
     description: 'High-intensity robot battles in our state-of-the-art arena'
   },
   { 
     id: 3, 
-    src: '/battlebots.jpg',
-    alt: 'Team Collaboration',
+    src: '/highlights/WhatsApp Image 2025-12-06 at 03.57.38 (1).jpeg',
+    alt: 'RoboMania Event Highlight 3',
     title: 'Team Spirit',
     description: 'Collaborative engineering at its finest'
   },
   { 
     id: 4, 
-    src: '/battlebots.jpg',
-    alt: 'Innovative Robot Design',
+    src: '/highlights/WhatsApp Image 2025-12-06 at 03.57.42.jpeg',
+    alt: 'RoboMania Event Highlight 4',
     title: 'Innovation',
     description: 'Pushing the boundaries of robot design and technology'
+  },
+  { 
+    id: 5, 
+    src: '/highlights/WhatsApp Image 2025-12-06 at 03.57.43 (1).jpeg',
+    alt: 'RoboMania Event Highlight 5',
+    title: 'Technical Excellence',
+    description: 'Showcasing advanced robotics technology'
   },
 ]
 
@@ -48,14 +55,17 @@ export default function EventHighlights() {
   }
 
   return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="absolute inset-0 " />
+    <section className="py-24 relative overflow-hidden bg-black">
+      {/* Black gradient background instead of hero image */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-black to-gray-950" />
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[150px]" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[150px]" />
       
       <motion.div 
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
-        className="container mx-auto px-4 sm:px-6 lg:px-8 relative"
+        className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10"
       >
         <motion.h2 
           initial={{ opacity: 0, y: 20 }}
@@ -91,7 +101,7 @@ export default function EventHighlights() {
                   <motion.h3
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-bold font-orbitron text-gray-900 mb-2"
+                    className="text-2xl font-bold font-orbitron text-white mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                   >
                     {highlights[currentIndex].title}
                   </motion.h3>
@@ -99,7 +109,7 @@ export default function EventHighlights() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-gray-800"
+                    className="text-gray-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                   >
                     {highlights[currentIndex].description}
                   </motion.p>

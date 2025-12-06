@@ -28,17 +28,17 @@ export default async function RootLayout({
   
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${orbitron.variable}`}>
-      <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
+      <body className="min-h-screen font-sans antialiased overflow-x-hidden" suppressHydrationWarning>
         <AuthSessionProvider>
           <SessionProvider session={session}>
             <Providers>
               <ThemeProvider>
-                <div className="min-h-screen relative antialiased">
+                <div className="min-h-screen relative antialiased overflow-x-hidden">
                   <HeroBackground />
                   <Sidebar />
                   <SocialSidebar />
                   <Header />
-                  <main>{children}</main>
+                  <main className="overflow-x-hidden">{children}</main>
                   <Footer />
                 </div>
               </ThemeProvider>

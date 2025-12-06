@@ -27,50 +27,53 @@ export function HeroBackground() {
     return (
       <div className="absolute inset-0 -z-10">
         <Image
-          src="/homepage-background.png"
-          alt="Homepage Background"
+          src="/Battlebots.png"
+          alt="Battlebots Background"
           fill
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
       </div>
     )
   }
 
   return (
     <div className="absolute inset-0 -z-10">
-      {/* Background Image */}
+      {/* Background Image - more visible now */}
       <Image
-        src="/homepage-background.png"
-        alt="Homepage Background"
+        src="/Battlebots.png"
+        alt="Battlebots Background"
         fill
         className="object-cover"
         priority
       />
       
-      {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/20" />
+      {/* Lighter gradient overlay for better image visibility */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
+      
+      {/* Subtle center spotlight effect */}
+      <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/20 to-black/50" />
       
       {/* Grid pattern overlay */}
       <div 
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(255,69,0,0.1) 1px, transparent 2px),
-            linear-gradient(to bottom, rgba(255,69,0,0.1) 1px, transparent 2px)
+            linear-gradient(to right, rgba(255,69,0,0.3) 1px, transparent 2px),
+            linear-gradient(to bottom, rgba(255,69,0,0.3) 1px, transparent 2px)
           `,
-          backgroundSize: '40px 40px'
+          backgroundSize: '50px 50px'
         }}
       />
 
-      {/* Animated gradients */}
+      {/* Animated gradients - more subtle */}
       <motion.div 
-        className="absolute inset-0"
+        className="absolute inset-0 opacity-30"
         animate={{
           background: [
-            'radial-gradient(circle at 0% 0%, rgba(255,69,0,0.3) 0%, transparent 60%)',
-            'radial-gradient(circle at 100% 100%, rgba(0,206,209,0.3) 0%, transparent 50%)',
+            'radial-gradient(circle at 20% 20%, rgba(255,69,0,0.2) 0%, transparent 50%)',
+            'radial-gradient(circle at 80% 80%, rgba(0,206,209,0.2) 0%, transparent 50%)',
           ],
         }}
         transition={{
@@ -80,16 +83,16 @@ export function HeroBackground() {
         }}
       />
 
-      {/* Mouse follow effect */}
+      {/* Mouse follow effect - more subtle */}
       <motion.div
-        className="absolute inset-0"
+        className="absolute inset-0 opacity-20"
         style={{
-          background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,69,0,0.2), transparent 50%)`,
+          background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,69,0,0.3), transparent 40%)`,
         }}
       />
 
-      {/* Subtle vignette effect */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/30 opacity-50" />
+      {/* Strong vignette effect */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/60" />
     </div>
   )
 } 

@@ -97,68 +97,71 @@ export default function Hero() {
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-theme-bg">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-theme-bg w-full">
       <HeroBackground />
       
-      <div className="relative z-20 text-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="relative z-20 text-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="space-y-8"
+          className="space-y-8 w-full"
         >
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-bold color-theme-text text-orange-300">
-            <span className="text-theme-text">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold px-4 break-words">
+            <span className="bg-gradient-to-r from-orange-300 via-orange-500 to-red-500 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(255,100,0,0.8)] filter brightness-125">
               RoboMania 2025
             </span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-theme-text-secondary">
+          <p className="text-lg sm:text-xl md:text-2xl text-white font-bold drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] px-4 break-words">
             Gear Up for the Ultimate Robot Battle
           </p>
           
           {/* Countdown Timer */}
-          <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 px-4 w-full">
             {Object.entries(timeLeft).map(([unit, value]) => (
-              <div
+              <motion.div
                 key={unit}
-                className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-theme-bg-card border border-theme-border flex flex-col items-center justify-center"
+                whileHover={{ scale: 1.05 }}
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-xl backdrop-blur-xl border border-orange-500/20 hover:border-white/40 transition-all duration-300 flex flex-col items-center justify-center shadow-xl flex-shrink-0"
               >
-                <span className="text-2xl sm:text-4xl font-bold text-theme-text">
+                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-zinc-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                   {value}
                 </span>
-                <span className="text-xs sm:text-sm text-theme-text-muted capitalize">
+                <span className="text-[10px] sm:text-xs md:text-sm text-zinc-300 capitalize font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                   {unit}
                 </span>
-              </div>
+              </motion.div>
             ))}
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 pt-4">
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 pt-4 px-4 w-full">
             <button
               onClick={handleRegistrationClick}
               disabled={loading}
-              className="px-8 py-4 bg-theme-accent hover:bg-theme-accent-hover border text-white rounded-xl font-medium transition-all duration-300 hover:shadow-glow flex items-center"
+              className="px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base bg-orange-500/70 backdrop-blur-xl hover:bg-orange-500/70 text-zinc-200 rounded-full font-bold transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/70 flex items-center border border-orange-400/30 flex-shrink-0"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Loading...
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin flex-shrink-0" />
+                  <span className="whitespace-nowrap">Loading...</span>
                 </>
               ) : (
                 <>
-                  {status === 'authenticated' 
-                    ? (hasRegistered ? 'View Registration' : 'Register Team') 
-                    : 'Sign In & Register'}
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <span className="whitespace-nowrap">
+                    {status === 'authenticated' 
+                      ? (hasRegistered ? 'View Registration' : 'Register Team') 
+                      : 'Sign In & Register'}
+                  </span>
+                  <ArrowRight className="w-5 h-5 ml-2 flex-shrink-0" />
                 </>
               )}
             </button>
             
             <Link
               href="/event-details"
-              className="px-8 py-4 bg-theme-bg-card border border-theme-border hover:border-theme-accent text-theme-text rounded-xl font-medium transition-all duration-300"
+              className="px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base bg-white/10 backdrop-blur-3xl border border-white/20 hover:border-white/40 text-white rounded-full font-bold transition-all duration-300 shadow-2xl hover:scale-105 whitespace-nowrap flex-shrink-0"
             >
               Learn More
             </Link>
