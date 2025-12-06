@@ -62,21 +62,39 @@ export function useStepValidation() {
       newErrors.push({ field: 'institution', message: 'Institution is required' });
     }
 
-    // Team members validation
+    // Team members validation - only validate non-empty members
     teamData.teamMembers.forEach((member, index) => {
-      if (!validateRequired(member.name)) {
-        newErrors.push({ field: `member_${index}_name`, message: `Member ${index + 1} name is required` });
-      }
-      if (!validateEmail(member.email)) {
-        newErrors.push({ field: `member_${index}_email`, message: `Member ${index + 1} email is invalid` });
-      }
-      if (!validatePhone(member.phone)) {
-        newErrors.push({ field: `member_${index}_phone`, message: `Member ${index + 1} phone is invalid` });
+      // Check if member has any data (partially filled)
+      const hasAnyData = member.name || member.email || member.phone;
+      
+      if (hasAnyData) {
+        // If member has some data, validate all required fields
+        if (!validateRequired(member.name)) {
+          newErrors.push({ field: `member_${index}_name`, message: `Member ${index + 1} name is required` });
+        }
+        if (!validateRequired(member.email)) {
+          newErrors.push({ field: `member_${index}_email`, message: `Member ${index + 1} email is required` });
+        } else if (!validateEmail(member.email)) {
+          newErrors.push({ field: `member_${index}_email`, message: `Member ${index + 1} email is invalid` });
+        }
+        if (!validateRequired(member.phone)) {
+          newErrors.push({ field: `member_${index}_phone`, message: `Member ${index + 1} phone is required` });
+        } else if (!validatePhone(member.phone)) {
+          newErrors.push({ field: `member_${index}_phone`, message: `Member ${index + 1} phone is invalid` });
+        }
       }
     });
 
-    // Check for duplicate emails
-    const allEmails = [teamData.leaderEmail, ...teamData.teamMembers.map(m => m.email)];
+    // Check for duplicate emails (only among filled emails)
+    const filledMemberEmails = teamData.teamMembers
+      .filter(m => m.email && m.email.trim() !== '')
+      .map(m => m.email.toLowerCase().trim());
+    
+    const allEmails = [
+      teamData.leaderEmail.toLowerCase().trim(), 
+      ...filledMemberEmails
+    ];
+    
     const uniqueEmails = new Set(allEmails);
     if (allEmails.length !== uniqueEmails.size) {
       newErrors.push({ field: 'emails', message: 'Duplicate email addresses found' });

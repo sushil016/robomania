@@ -487,8 +487,20 @@ export default function TeamRegistration() {
           throw new Error(paymentData.error || 'Failed to initiate PhonePe payment')
         }
 
+        console.log('📱 PhonePe payment data:', paymentData)
+
         // Redirect to PhonePe payment page
-        window.location.href = paymentData.redirectUrl
+        // For mobile UPI redirect to work properly, we need to open in the current window
+        // and ensure user interaction triggers it (no popups blocked)
+        if (paymentData.redirectUrl) {
+          // Direct navigation - this ensures UPI apps can be triggered on mobile
+          window.location.href = paymentData.redirectUrl
+        } else {
+          throw new Error('No redirect URL received from PhonePe')
+        }
+        
+        // Return early as we're redirecting
+        return
       } else {
         // Razorpay payment flow (existing logic)
         const orderResponse = await fetch('/api/create-order', {

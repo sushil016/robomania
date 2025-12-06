@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     const payResponse = await phonepeClient.pay(payRequest)
     
     console.log('✅ PhonePe payment initiated, redirect URL:', payResponse.redirectUrl)
+    console.log('📱 Full payment response:', JSON.stringify(payResponse, null, 2))
 
     return NextResponse.json({
       success: true,

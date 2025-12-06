@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-gray-100 to-gray-50 opacity-50" />
       
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           {/* Brand Section */}
           <div>
             <h2 className="text-2xl font-bold font-orbitron mb-6">
@@ -71,6 +71,37 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Legal Links */}
+          <div>
+            <h3 className="text-lg font-bold font-orbitron mb-6">Legal</h3>
+            <ul className="space-y-4">
+              <li>
+                <Link 
+                  href="/privacy-policy"
+                  className="text-gray-600 hover:text-[#00CED1] transition-colors duration-200"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/terms"
+                  className="text-gray-600 hover:text-[#00CED1] transition-colors duration-200"
+                >
+                  Terms & Conditions
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/refund-policy"
+                  className="text-gray-600 hover:text-[#00CED1] transition-colors duration-200"
+                >
+                  Refund Policy
+                </Link>
+              </li>
             </ul>
           </div>
 

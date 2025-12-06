@@ -170,14 +170,19 @@ export async function GET(request: Request) {
         }
       }
 
-      // Get user's saved bots (only works if migration run)
-      const { data: bots } = await supabaseAdmin
+      // Get user's saved bots from bots table (query by team_id)
+      const { data: bots, error: botsError } = await supabaseAdmin
         .from('bots')
         .select('*')
-        .eq('user_email', email)
+        .eq('team_id', team.id)
         .order('created_at', { ascending: false })
 
+      if (botsError) {
+        console.error('Error fetching bots:', botsError)
+      }
+
       savedBots = bots || []
+      console.log(`Found ${savedBots.length} saved bots for team ${team.id}`)
     }
 
     // Get team members if team exists
