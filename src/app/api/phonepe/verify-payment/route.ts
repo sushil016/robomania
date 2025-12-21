@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import phonepeClient from '@/lib/phonepe'
 import { supabaseAdmin } from '@/lib/supabase'
+import { sendPaymentConfirmedEmail } from '@/lib/email'
 
 /**
  * Manual PhonePe payment verification endpoint
@@ -85,6 +86,30 @@ export async function POST(request: Request) {
           console.error('Failed to update team:', teamUpdateError)
         } else {
           console.log(`✅ Updated team ${teamId} payment status`)
+        }
+
+        // Send payment confirmed email
+        const { data: team } = await supabaseAdmin
+          .from('teams')
+          .select('team_name, leader_name, user_email, contact_email')
+          .eq('id', teamId)
+          .single()
+        
+        if (team) {
+          const totalAmount = registrations.reduce((sum, r) => sum + (r.amount || 0), 0)
+          const competitions = registrations.map(r => r.competition_type)
+          const leaderEmail = team.user_email || team.contact_email || email
+          
+          if (leaderEmail) {
+            sendPaymentConfirmedEmail({
+              teamName: team.team_name,
+              leaderName: team.leader_name || 'Team Leader',
+              leaderEmail: leaderEmail,
+              competitions: competitions,
+              totalAmount: totalAmount,
+              transactionId: transactionId
+            }).catch(err => console.error('Failed to send payment confirmed email:', err))
+          }
         }
 
         return NextResponse.json({

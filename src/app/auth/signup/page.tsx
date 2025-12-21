@@ -13,12 +13,32 @@ export default function SignupPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [error, setError] = useState('')
+  const [checkingRegistration, setCheckingRegistration] = useState(false)
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace('/team-register')
+    const checkAndRedirect = async () => {
+      if (status === 'authenticated' && session?.user?.email) {
+        setCheckingRegistration(true)
+        try {
+          const response = await fetch('/api/check-registration')
+          const data = await response.json()
+          
+          if (data.registeredCompetitions && data.registeredCompetitions.length >= 3) {
+            // User is fully registered, redirect to dashboard
+            router.replace('/dashboard')
+            return
+          }
+        } catch (err) {
+          console.error('Failed to check registration:', err)
+        }
+        setCheckingRegistration(false)
+        // Normal redirect to team-register
+        router.replace('/team-register')
+      }
     }
-  }, [status, router])
+    
+    checkAndRedirect()
+  }, [status, session, router])
 
   const handleSignup = async (data: { email: string; password: string; name?: string }) => {
     try {
@@ -45,7 +65,7 @@ export default function SignupPage() {
     }
   }
 
-  if (status === 'loading') {
+  if (status === 'loading' || checkingRegistration) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" />

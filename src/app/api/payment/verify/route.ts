@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import crypto from 'crypto'
+import { sendPaymentConfirmedEmail } from '@/lib/email'
 
 interface CompetitionData {
   competition: string
@@ -105,6 +106,39 @@ export async function POST(request: Request) {
         console.error('Failed to update team payment status by orderId:', teamError)
       } else {
         console.log('✅ Team payment status updated by orderId')
+      }
+    }
+
+    // Send payment confirmed email
+    if (teamId) {
+      // Fetch team and registration details for email
+      const { data: team } = await supabaseAdmin
+        .from('teams')
+        .select('team_name, leader_name, user_email, contact_email')
+        .eq('id', teamId)
+        .single()
+      
+      const { data: registrations } = await supabaseAdmin
+        .from('competition_registrations')
+        .select('competition_type, amount')
+        .eq('team_id', teamId)
+        .eq('payment_status', 'COMPLETED')
+      
+      if (team && registrations && registrations.length > 0) {
+        const totalAmount = registrations.reduce((sum, r) => sum + (r.amount || 0), 0)
+        const competitions = registrations.map(r => r.competition_type)
+        const leaderEmail = team.user_email || team.contact_email
+        
+        if (leaderEmail) {
+          sendPaymentConfirmedEmail({
+            teamName: team.team_name,
+            leaderName: team.leader_name || 'Team Leader',
+            leaderEmail: leaderEmail,
+            competitions: competitions,
+            totalAmount: totalAmount,
+            transactionId: paymentId
+          }).catch(err => console.error('Failed to send payment confirmed email:', err))
+        }
       }
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 import { supabaseAdmin } from '@/lib/supabase'
 import { headers } from 'next/headers'
+import { sendRegistrationStartedEmail, sendCompetitionRegisteredEmail } from '@/lib/email'
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -36,6 +37,20 @@ interface CompetitionData {
   robotWeight?: number
   robotDimensions?: string
   weaponType?: string
+}
+
+interface TeamMember {
+  name: string
+  email: string
+  phone: string
+  role: string
+}
+
+interface TeamData {
+  teamName: string
+  leaderEmail: string
+  leaderName?: string
+  teamMembers?: TeamMember[]
 }
 
 const COMPETITION_PRICES: Record<string, number> = {
@@ -92,35 +107,53 @@ export async function POST(request: Request) {
     let teamName = 'Team'
     let finalTeamId = teamId
 
-    if (!teamId && teamData && finalUserEmail) {
-      console.log('Creating new team:', teamData.teamName)
+    // If no teamId provided, check if team exists first
+    if (!teamId && finalUserEmail) {
+      console.log('No teamId provided, checking for existing team for:', finalUserEmail)
       
-      const registerResponse = await fetch(`${baseUrl}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...teamData,
-          userEmail: finalUserEmail,
-          contactEmail: teamData.leaderEmail,
-          contactPhone: teamData.leaderPhone,
-          robotName: robotDetails?.[competitions[0]]?.robotName || 'Bot',
-          robotWeight: robotDetails?.[competitions[0]]?.weight || 5,
-          robotDimensions: robotDetails?.[competitions[0]]?.dimensions || '30x30x30',
-          weaponType: robotDetails?.[competitions[0]]?.weaponType || '',
-          members: teamData.teamMembers || []
+      const { data: existingTeams, error: searchError } = await supabaseAdmin
+        .from('teams')
+        .select('*')
+        .or(`user_email.eq.${finalUserEmail},contact_email.eq.${finalUserEmail}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!searchError && existingTeams && existingTeams.length > 0) {
+        // Team exists, use it
+        finalTeamId = existingTeams[0].id
+        teamName = existingTeams[0].team_name
+        console.log('✅ Found existing team:', teamName, 'ID:', finalTeamId)
+      } else if (teamData) {
+        // Team doesn't exist, create it
+        console.log('Creating new team:', teamData.teamName)
+        
+        const registerResponse = await fetch(`${baseUrl}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...teamData,
+            userEmail: finalUserEmail,
+            contactEmail: teamData.leaderEmail,
+            contactPhone: teamData.leaderPhone,
+            robotName: robotDetails?.[competitions[0]]?.robotName || 'Bot',
+            robotWeight: robotDetails?.[competitions[0]]?.weight || 5,
+            robotDimensions: robotDetails?.[competitions[0]]?.dimensions || '30x30x30',
+            weaponType: robotDetails?.[competitions[0]]?.weaponType || '',
+            members: teamData.teamMembers || []
+          })
         })
-      })
 
-      const registerData = await registerResponse.json()
-      
-      if (!registerResponse.ok) {
-        console.error('Failed to create team:', registerData)
-        return NextResponse.json({ error: registerData.message || 'Failed to create team' }, { status: 400 })
+        const registerData = await registerResponse.json()
+        
+        if (!registerResponse.ok) {
+          console.error('Failed to create team:', registerData)
+          return NextResponse.json({ error: registerData.message || 'Failed to create team' }, { status: 400 })
+        }
+
+        finalTeamId = registerData.team?.id
+        teamName = registerData.team?.teamName || teamData.teamName
+        console.log('Team created successfully:', finalTeamId)
       }
-
-      finalTeamId = registerData.team?.id
-      teamName = registerData.team?.teamName || teamData.teamName
-      console.log('Team created successfully:', finalTeamId)
     }
 
     if (finalTeamId) {
@@ -226,39 +259,35 @@ export async function POST(request: Request) {
           }
         }
 
-        // Check for duplicate entries - ONLY for RoboWars with same bot
+        // Check for duplicate entries - prevent registering for same competition twice
         const competitionType = comp.competition.toUpperCase()
-        let shouldCreateNew = true
 
-        if (competitionType === 'ROBOWARS' && botIdToUse) {
-          // For RoboWars: check if same team + same bot already has an entry
-          const { data: existingReg } = await supabaseAdmin
-            .from('competition_registrations')
-            .select('id')
-            .eq('team_id', finalTeamId)
-            .eq('competition_type', competitionType)
-            .eq('bot_id', botIdToUse)
-            .single()
+        // Check if team already has a registration for this competition type
+        const { data: existingCompReg } = await supabaseAdmin
+          .from('competition_registrations')
+          .select('id, payment_status')
+          .eq('team_id', finalTeamId)
+          .eq('competition_type', competitionType)
+          .single()
 
-          if (existingReg) {
-            // Update existing RoboWars entry with same bot
-            await supabaseAdmin
-              .from('competition_registrations')
-              .update({ 
-                payment_id: order.id, 
-                payment_status: 'PENDING', 
-                amount: comp.amount 
-              })
-              .eq('id', existingReg.id)
-            
-            console.log(`✅ Updated existing RoboWars registration (same bot)`)
-            shouldCreateNew = false
-          }
-        }
-        // For RoboRace and RoboSoccer: ALWAYS create new entry (multiple entries allowed)
-        
-        if (shouldCreateNew) {
+        if (existingCompReg) {
+          console.log(`⚠️ Team already registered for ${competitionType}, updating existing registration`)
+          
+          // Update existing registration instead of creating duplicate
           await supabaseAdmin
+            .from('competition_registrations')
+            .update({ 
+              payment_id: order.id, 
+              payment_status: 'PENDING', 
+              amount: comp.amount 
+            })
+            .eq('id', existingCompReg.id)
+          
+          console.log(`✅ Updated existing registration for ${competitionType}`)
+          continue // Skip creating new registration
+        }
+        
+        const { data: newCompReg, error: compRegError } = await supabaseAdmin
             .from('competition_registrations')
             .insert({ 
               team_id: finalTeamId, 
@@ -269,15 +298,72 @@ export async function POST(request: Request) {
               payment_status: 'PENDING', 
               registration_status: 'PENDING' 
             })
+            .select('id')
+            .single()
           
-          console.log(`✅ Created new registration for ${comp.competition}${botIdToUse ? ` with bot ${botIdToUse}` : ''}`)
-        }
+          if (compRegError) {
+            console.error(`❌ Failed to create competition registration for ${comp.competition}:`, compRegError)
+          } else if (newCompReg) {
+            console.log(`✅ Created new registration for ${comp.competition}${botIdToUse ? ` with bot ${botIdToUse}` : ''}`)
+            
+            // Save team members for THIS specific competition registration
+            if (teamData?.teamMembers && Array.isArray(teamData.teamMembers)) {
+              const membersToInsert = teamData.teamMembers
+                .filter((m: TeamMember) => m.name && m.email)
+                .map((member: TeamMember) => ({
+                  team_id: finalTeamId,
+                  competition_registration_id: newCompReg.id,
+                  name: member.name,
+                  email: member.email,
+                  phone: member.phone || '',
+                  role: member.role || 'Member'
+                }))
+              
+              if (membersToInsert.length > 0) {
+                const { error: membersError } = await supabaseAdmin
+                  .from('team_members')
+                  .insert(membersToInsert)
+                
+                if (membersError) {
+                  console.error(`❌ Failed to save team members for ${comp.competition}:`, membersError)
+                } else {
+                  console.log(`✅ Saved ${membersToInsert.length} team members for ${comp.competition}`)
+                }
+              }
+            }
+          }
       }
     }
 
     await supabaseAdmin.from('teams').update({ payment_id: order.id, is_multi_competition: competitionsArray.length > 1 }).eq('id', finalTeamId)
 
     console.log('✅ Order creation complete!')
+
+    // Send registration started email (async, don't await)
+    if (finalUserEmail && teamName && totalAmount > 0) {
+      const competitionTypes = competitionsArray.map((c: CompetitionData) => c.competition.toUpperCase())
+      
+      // Send registration started email
+      sendRegistrationStartedEmail({
+        teamName: teamName,
+        leaderName: teamData?.leaderName || 'Team Leader',
+        leaderEmail: finalUserEmail,
+        competitions: competitionTypes,
+        totalAmount: totalAmount
+      }).catch(err => console.error('Failed to send registration email:', err))
+      
+      // Send individual competition registration emails
+      for (const comp of competitionsArray) {
+        sendCompetitionRegisteredEmail({
+          teamName: teamName,
+          leaderName: teamData?.leaderName || 'Team Leader',
+          leaderEmail: finalUserEmail,
+          competition: comp.competition.toUpperCase(),
+          amount: comp.amount,
+          paymentStatus: 'PENDING'
+        }).catch(err => console.error(`Failed to send ${comp.competition} email:`, err))
+      }
+    }
 
     return NextResponse.json({
       success: true,

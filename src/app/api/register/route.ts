@@ -54,57 +54,20 @@ export async function POST(request: Request) {
       .eq('user_email', data.userEmail)
       .single()
 
-    // If team exists for this user, update it instead of creating new
+    // If team exists for this user, DON'T update it - just return the existing team
+    // Competition-specific data (bots, members per competition) will be handled separately
     if (existingTeam && !existingError) {
-      console.log('Team already exists for user, updating:', existingTeam.id)
+      console.log('Team already exists for user, returning existing team:', existingTeam.id)
       
-      const { data: updatedTeam, error: updateError } = await supabaseAdmin
-        .from('teams')
-        .update({
-          team_name: data.teamName,
-          institution: data.institution,
-          leader_name: data.leaderName,
-          leader_email: data.leaderEmail,
-          leader_phone: data.leaderPhone,
-          contact_email: data.contactEmail,
-          contact_phone: data.contactPhone,
-          robot_name: data.robotName,
-          robot_weight: data.robotWeight,
-          robot_dimensions: data.robotDimensions,
-          weapon_type: data.weaponType
-        })
-        .eq('id', existingTeam.id)
-        .select()
-        .single()
-
-      if (updateError) {
-        console.error('Failed to update team:', updateError)
-        return NextResponse.json({ success: false, message: 'Failed to update team', error: updateError.message }, { status: 500 })
-      }
-
-      // Update team members - delete old and insert new
-      await supabaseAdmin.from('team_members').delete().eq('team_id', existingTeam.id)
-      
-      if (data.members && data.members.length > 0) {
-        const membersToInsert = data.members
-          .filter(m => m.name && m.email)
-          .map(member => ({
-            team_id: existingTeam.id,
-            name: member.name,
-            email: member.email,
-            phone: member.phone || '',
-            role: member.role || 'Member'
-          }))
-
-        if (membersToInsert.length > 0) {
-          await supabaseAdmin.from('team_members').insert(membersToInsert)
-        }
-      }
-
       return NextResponse.json({
         success: true,
-        message: 'Team updated successfully',
-        team: { id: updatedTeam.id, teamName: updatedTeam.team_name, status: updatedTeam.status, paymentStatus: updatedTeam.payment_status },
+        message: 'Using existing team',
+        team: { 
+          id: existingTeam.id, 
+          teamName: existingTeam.team_name, 
+          status: existingTeam.status, 
+          paymentStatus: existingTeam.payment_status 
+        },
         isExisting: true
       })
     }

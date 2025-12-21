@@ -4,6 +4,7 @@ import phonepeClient from '@/lib/phonepe'
 import { CreateSdkOrderRequest } from 'pg-sdk-node'
 import { v4 as uuid } from 'uuid'
 import { headers } from 'next/headers'
+import { sendRegistrationStartedEmail, sendCompetitionRegisteredEmail } from '@/lib/email'
 
 // Helper function to get the base URL from request
 async function getBaseUrl(): Promise<string> {
@@ -33,6 +34,13 @@ interface CompetitionData {
   robotWeight?: number
   robotDimensions?: string
   weaponType?: string
+}
+
+interface TeamMember {
+  name: string
+  email: string
+  phone: string
+  role: string
 }
 
 const COMPETITION_PRICES: Record<string, number> = {
@@ -204,6 +212,34 @@ export async function POST(request: Request) {
       console.log(`Saving ${competitionsArray.length} competition registrations...`)
       
       for (const comp of competitionsArray) {
+        const competitionType = comp.competition.toUpperCase()
+        
+        // Check if team already has a registration for this competition type
+        const { data: existingCompReg } = await supabaseAdmin
+          .from('competition_registrations')
+          .select('id, payment_status')
+          .eq('team_id', finalTeamId)
+          .eq('competition_type', competitionType)
+          .single()
+
+        if (existingCompReg) {
+          console.log(`⚠️ Team already registered for ${competitionType}, updating existing registration`)
+          
+          // Update existing registration instead of creating duplicate
+          await supabaseAdmin
+            .from('competition_registrations')
+            .update({ 
+              payment_id: merchantOrderId, 
+              payment_status: 'PENDING',
+              amount: comp.amount,
+              payment_gateway: 'PHONEPE'
+            })
+            .eq('id', existingCompReg.id)
+          
+          console.log(`✅ Updated existing registration for ${competitionType}`)
+          continue // Skip creating new registration
+        }
+
         let botIdToUse = comp.botId || null
 
         // Create bot in database if robot details are provided and botId is not already set
@@ -231,53 +267,51 @@ export async function POST(request: Request) {
           }
         }
 
-        // Check for duplicate entries - ONLY for RoboWars with same bot
-        const competitionType = comp.competition.toUpperCase()
-        let shouldCreateNew = true
-
-        if (competitionType === 'ROBOWARS' && botIdToUse) {
-          // For RoboWars: check if same team + same bot already has an entry
-          const { data: existingReg } = await supabaseAdmin
-            .from('competition_registrations')
-            .select('id')
-            .eq('team_id', finalTeamId)
-            .eq('competition_type', competitionType)
-            .eq('bot_id', botIdToUse)
-            .single()
-
-          if (existingReg) {
-            // Update existing RoboWars entry with same bot
-            await supabaseAdmin
-              .from('competition_registrations')
-              .update({ 
-                payment_id: merchantOrderId, 
-                payment_status: 'PENDING', 
-                amount: comp.amount,
-                payment_gateway: 'PHONEPE'
-              })
-              .eq('id', existingReg.id)
-            
-            console.log(`✅ Updated existing RoboWars registration (same bot)`)
-            shouldCreateNew = false
-          }
-        }
-        // For RoboRace and RoboSoccer: ALWAYS create new entry (multiple entries allowed)
-
-        if (shouldCreateNew) {
-          await supabaseAdmin
-            .from('competition_registrations')
-            .insert({ 
-              team_id: finalTeamId, 
-              competition_type: competitionType, 
-              bot_id: botIdToUse, 
-              amount: comp.amount, 
-              payment_id: merchantOrderId, 
-              payment_status: 'PENDING', 
-              registration_status: 'PENDING',
-              payment_gateway: 'PHONEPE'
-            })
-          
+        const { data: newCompReg, error: compRegError } = await supabaseAdmin
+          .from('competition_registrations')
+          .insert({ 
+            team_id: finalTeamId, 
+            competition_type: competitionType, 
+            bot_id: botIdToUse, 
+            amount: comp.amount, 
+            payment_id: merchantOrderId, 
+            payment_status: 'PENDING', 
+            registration_status: 'PENDING',
+            payment_gateway: 'PHONEPE'
+          })
+          .select('id')
+          .single()
+        
+        if (compRegError) {
+          console.error(`❌ Failed to create competition registration for ${comp.competition}:`, compRegError)
+        } else if (newCompReg) {
           console.log(`✅ Created new registration for ${comp.competition}${botIdToUse ? ` with bot ${botIdToUse}` : ''}`)
+          
+          // Save team members for THIS specific competition registration
+          if (teamData?.teamMembers && Array.isArray(teamData.teamMembers)) {
+            const membersToInsert = teamData.teamMembers
+              .filter((m: TeamMember) => m.name && m.email)
+              .map((member: TeamMember) => ({
+                team_id: finalTeamId,
+                competition_registration_id: newCompReg.id,
+                name: member.name,
+                email: member.email,
+                phone: member.phone || '',
+                role: member.role || 'Member'
+              }))
+            
+            if (membersToInsert.length > 0) {
+              const { error: membersError } = await supabaseAdmin
+                .from('team_members')
+                .insert(membersToInsert)
+              
+              if (membersError) {
+                console.error(`❌ Failed to save team members for ${comp.competition}:`, membersError)
+              } else {
+                console.log(`✅ Saved ${membersToInsert.length} team members for ${comp.competition}`)
+              }
+            }
+          }
         }
       }
     }
@@ -292,6 +326,32 @@ export async function POST(request: Request) {
       .eq('id', finalTeamId)
 
     console.log('✅ PhonePe order creation complete!')
+
+    // Send registration emails (async, don't await)
+    if (finalUserEmail && teamName && totalAmount > 0) {
+      const competitionTypes = competitionsArray.map((c: CompetitionData) => c.competition.toUpperCase())
+      
+      // Send registration started email
+      sendRegistrationStartedEmail({
+        teamName: teamName,
+        leaderName: teamData?.leaderName || 'Team Leader',
+        leaderEmail: finalUserEmail,
+        competitions: competitionTypes,
+        totalAmount: totalAmount
+      }).catch(err => console.error('Failed to send registration email:', err))
+      
+      // Send individual competition registration emails
+      for (const comp of competitionsArray) {
+        sendCompetitionRegisteredEmail({
+          teamName: teamName,
+          leaderName: teamData?.leaderName || 'Team Leader',
+          leaderEmail: finalUserEmail,
+          competition: comp.competition.toUpperCase(),
+          amount: comp.amount,
+          paymentStatus: 'PENDING'
+        }).catch(err => console.error(`Failed to send ${comp.competition} email:`, err))
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -14,14 +14,38 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/team-register'
   const [error, setError] = useState('')
+  const [checkingRegistration, setCheckingRegistration] = useState(false)
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace(callbackUrl)
+    const checkAndRedirect = async () => {
+      if (status === 'authenticated' && session?.user?.email) {
+        // If callback is team-register, check if user is fully registered
+        if (callbackUrl === '/team-register' || callbackUrl.includes('team-register')) {
+          setCheckingRegistration(true)
+          try {
+            const response = await fetch('/api/check-registration')
+            const data = await response.json()
+            
+            if (data.registeredCompetitions && data.registeredCompetitions.length >= 3) {
+              // User is fully registered, redirect to dashboard
+              router.replace('/dashboard')
+              return
+            }
+          } catch (err) {
+            console.error('Failed to check registration:', err)
+          }
+          setCheckingRegistration(false)
+        }
+        
+        // Normal redirect
+        router.replace(callbackUrl)
+      }
     }
-  }, [status, router, callbackUrl])
+    
+    checkAndRedirect()
+  }, [status, session, router, callbackUrl])
 
-  if (status === 'loading') {
+  if (status === 'loading' || checkingRegistration) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" />

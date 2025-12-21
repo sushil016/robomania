@@ -23,13 +23,13 @@ export function ModernStepIndicator({ currentStep, steps }: ModernStepIndicatorP
           <span className="text-sm font-medium text-gray-600">
             Step {currentStep} of {steps.length}
           </span>
-          <span className="text-sm font-medium text-blue-600">
+          <span className="text-sm font-medium text-orange-600">
             {Math.round((currentStep / steps.length) * 100)}%
           </span>
         </div>
         <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
           <motion.div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-600"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 to-amber-500"
             initial={{ width: 0 }}
             animate={{ width: `${(currentStep / steps.length) * 100}%` }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -48,7 +48,7 @@ export function ModernStepIndicator({ currentStep, steps }: ModernStepIndicatorP
           
           {/* Animated Progress Line */}
           <motion.div
-            className="absolute top-5 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600 -z-10"
+            className="absolute top-5 left-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500 -z-10"
             initial={{ width: 0 }}
             animate={{ 
               width: currentStep === 1 
@@ -93,7 +93,7 @@ export function ModernStepIndicator({ currentStep, steps }: ModernStepIndicatorP
                       <div className="relative w-10 h-10">
                         {/* Pulsing ring */}
                         <motion.div
-                          className="absolute inset-0 rounded-full bg-blue-500"
+                          className="absolute inset-0 rounded-full bg-orange-500"
                           animate={{
                             scale: [1, 1.3, 1],
                             opacity: [0.5, 0, 0.5],
@@ -105,7 +105,7 @@ export function ModernStepIndicator({ currentStep, steps }: ModernStepIndicatorP
                           }}
                         />
                         {/* Main circle */}
-                        <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                        <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-200">
                           <span className="text-white font-bold text-lg">
                             {step.number}
                           </span>
@@ -131,7 +131,7 @@ export function ModernStepIndicator({ currentStep, steps }: ModernStepIndicatorP
                     <p
                       className={`text-sm font-semibold transition-colors ${
                         isCurrent
-                          ? 'text-blue-600'
+                          ? 'text-orange-600'
                           : isCompleted
                           ? 'text-green-600'
                           : 'text-gray-500'
@@ -159,10 +159,10 @@ export function ModernStepIndicator({ currentStep, steps }: ModernStepIndicatorP
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200"
+          className="mt-8 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0 shadow-md shadow-orange-200">
               <span className="text-white font-bold">{currentStep}</span>
             </div>
             <div>

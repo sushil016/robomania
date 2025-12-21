@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Menu, X, LogOut, Home, Calendar, Phone, Users, Award } from 'lucide-react'
+import { Menu, X, LogOut, Home, Calendar, Phone, Users, Award, User, ChevronDown, LayoutDashboard } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
@@ -22,6 +22,8 @@ export default function Header() {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,12 +33,21 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // const handleSignOut = async () => {
-  //   await signOut({ callbackUrl: '/' })
-  //   setIsMenuOpen(false)
-  // }
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
-
+  const handleSignOut = async () => {
+    setIsDropdownOpen(false)
+    await signOut({ callbackUrl: '/' })
+  }
 
   return (
     <motion.header
@@ -80,13 +91,77 @@ export default function Header() {
             </Link>
           </motion.div>
 
-          {/* Right: Sign Up Button (Desktop) */}
+          {/* Right: User Dropdown (Desktop) */}
           <div className="hidden md:flex items-center">
             {status === 'authenticated' && session?.user ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-white font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                  {session.user.name || session.user.email}
-                </span>
+              <div className="flex items-center gap-3" ref={dropdownRef}>
+                {/* User Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-200 border border-white/20"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {session.user.name?.charAt(0) || session.user.email?.charAt(0) || 'U'}
+                    </div>
+                    <span className="text-sm text-white font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[120px] truncate">
+                      {session.user.name || session.user.email?.split('@')[0]}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                      >
+                        {/* User Info Header */}
+                        <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-100">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{session.user.name || 'User'}</p>
+                          <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
+                        </div>
+
+                        {/* Menu Items */}
+                        <div className="py-2">
+                          <Link
+                            href="/profile"
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                          >
+                            <User className="w-4 h-4" />
+                            Profile
+                          </Link>
+                          <Link
+                            href="/dashboard"
+                            onClick={() => setIsDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            Dashboard
+                          </Link>
+                        </div>
+
+                        {/* Sign Out */}
+                        <div className="border-t border-gray-100 py-2">
+                          <button
+                            onClick={handleSignOut}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Dashboard Button */}
                 <button
                   onClick={() => router.push('/dashboard')}
                   className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-full hover:from-orange-600 hover:to-red-700 transition-all duration-300 shadow-lg shadow-orange-500/40 flex items-center gap-2 font-semibold"
@@ -160,10 +235,28 @@ export default function Header() {
               {/* User Section */}
               <div className="border-t border-white/20 pt-3">
                 {session?.user ? (
-                  <>
-                    <div className="px-3 py-2 text-sm text-white font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mb-2">
-                      {session.user.name || session.user.email}
+                  <div className="space-y-2">
+                    {/* User Info */}
+                    <div className="px-3 py-2 bg-white/5 rounded-lg">
+                      <p className="text-sm text-white font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                        {session.user.name || session.user.email}
+                      </p>
+                      <p className="text-xs text-white/60 truncate">{session.user.email}</p>
                     </div>
+                    
+                    {/* Profile Link */}
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white hover:bg-white/10 transition-all duration-200"
+                    >
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/20">
+                        <User className="w-4 h-4" style={{ color: '#ff8126' }} />
+                      </div>
+                      <span className="font-medium text-sm">Profile</span>
+                    </Link>
+                    
+                    {/* Dashboard Button */}
                     <button
                       onClick={() => {
                         router.push('/dashboard')
@@ -171,9 +264,22 @@ export default function Header() {
                       }}
                       className="w-full px-3 py-2.5 rounded-lg text-base font-orbitron text-white bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg shadow-orange-500/40"
                     >
+                      <LayoutDashboard className="w-4 h-4" />
                       <span>Dashboard</span>
                     </button>
-                  </>
+                    
+                    {/* Sign Out Button */}
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        signOut({ callbackUrl: '/' })
+                      }}
+                      className="w-full px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
                 ) : (
                   <div className="px-3 py-2">
                     <SignInButton />
@@ -187,4 +293,3 @@ export default function Header() {
     </motion.header>
   )
 }
-

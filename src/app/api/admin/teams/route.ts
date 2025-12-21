@@ -10,12 +10,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch all teams with members
+    // Fetch all teams with members, competition registrations, and bots
     const { data: teams, error } = await supabaseAdmin
       .from('teams')
       .select(`
         *,
-        team_members (*)
+        team_members (*),
+        competition_registrations (*),
+        bots (*)
       `)
       .order('created_at', { ascending: false })
 
@@ -27,9 +29,21 @@ export async function GET() {
       )
     }
 
+    // Transform the data to include computed fields
+    const transformedTeams = teams?.map(team => ({
+      ...team,
+      totalRegistrations: team.competition_registrations?.length || 0,
+      paidRegistrations: team.competition_registrations?.filter((r: any) => r.payment_status === 'COMPLETED').length || 0,
+      pendingRegistrations: team.competition_registrations?.filter((r: any) => r.payment_status === 'PENDING').length || 0,
+      competitions: team.competition_registrations?.map((r: any) => r.competition_type) || [],
+      totalAmount: team.competition_registrations?.reduce((sum: number, r: any) => sum + (r.amount || 0), 0) || 0,
+      paidAmount: team.competition_registrations?.filter((r: any) => r.payment_status === 'COMPLETED')
+        .reduce((sum: number, r: any) => sum + (r.amount || 0), 0) || 0
+    })) || []
+
     return NextResponse.json({
       success: true,
-      teams: teams || []
+      teams: transformedTeams
     })
   } catch (error) {
     console.error('Teams API error:', error)

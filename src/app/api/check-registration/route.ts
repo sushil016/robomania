@@ -183,9 +183,25 @@ export async function GET(request: Request) {
 
       savedBots = bots || []
       console.log(`Found ${savedBots.length} saved bots for team ${team.id}`)
+
+      // Fetch team members per competition registration
+      for (let i = 0; i < registeredCompetitions.length; i++) {
+        const comp = registeredCompetitions[i]
+        const { data: compMembers } = await supabaseAdmin
+          .from('team_members')
+          .select('name, email, phone, role')
+          .eq('competition_registration_id', comp.id)
+          .order('created_at', { ascending: true })
+        
+        // Add members to this competition
+        registeredCompetitions[i] = {
+          ...comp,
+          team_members: compMembers || []
+        }
+      }
     }
 
-    // Get team members if team exists
+    // Get team members if team exists (for backward compatibility, get distinct members)
     let teamMembers: any[] = []
     if (team) {
       const { data: members } = await supabaseAdmin
@@ -194,7 +210,15 @@ export async function GET(request: Request) {
         .eq('team_id', team.id)
         .order('created_at', { ascending: true })
       
-      teamMembers = members || []
+      // Remove duplicates based on email
+      const uniqueMembers = members?.reduce((acc: any[], member) => {
+        if (!acc.find(m => m.email === member.email)) {
+          acc.push(member)
+        }
+        return acc
+      }, []) || []
+      
+      teamMembers = uniqueMembers
     }
 
     const responseData = {

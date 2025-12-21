@@ -6,8 +6,9 @@ declare global {
   }
 }
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Save } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { ModernStepIndicator } from '@/components/ModernStepIndicator'
@@ -121,9 +122,14 @@ export default function TeamRegistration() {
   const [autoSaving, setAutoSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   
+  // Ref to prevent duplicate form submissions (race condition protection)
+  const isSubmittingRef = useRef(false)
+  
   const [hasExistingTeam, setHasExistingTeam] = useState(false)
   const [existingTeamId, setExistingTeamId] = useState<string | null>(null)
   const [showDraftPrompt, setShowDraftPrompt] = useState(false)
+  const [alreadyRegisteredCompetitions, setAlreadyRegisteredCompetitions] = useState<string[]>([])
+  const [isFullyRegistered, setIsFullyRegistered] = useState(false)
   
   // Preview state
   const [previewCompetition, setPreviewCompetition] = useState<string | null>(null)
@@ -172,14 +178,15 @@ export default function TeamRegistration() {
 
       // Smart auto-fill from session and localStorage
       const autoFillData = getAutoFillData(session)
-      if (autoFillData) {
-        setFormData(prev => ({
-          ...prev,
-          leaderEmail: autoFillData.leaderEmail || prev.leaderEmail,
-          leaderName: autoFillData.leaderName || prev.leaderName,
-          institution: autoFillData.institution || prev.institution,
-        }))
-      }
+      // Always use session email for leader (cannot be changed)
+      const sessionEmail = session.user.email || ''
+      
+      setFormData(prev => ({
+        ...prev,
+        leaderEmail: sessionEmail, // Always force session email
+        leaderName: autoFillData?.leaderName || prev.leaderName,
+        institution: autoFillData?.institution || prev.institution,
+      }))
 
       // Check for existing team
       try {
@@ -189,6 +196,32 @@ export default function TeamRegistration() {
         if (data.hasRegistered && data.teamId) {
           setHasExistingTeam(true)
           setExistingTeamId(data.teamId)
+          
+          // Track already registered competitions
+          if (data.registeredCompetitions && data.registeredCompetitions.length > 0) {
+            const registeredCompTypes = data.registeredCompetitions.map((comp: any) => {
+              // Map competition types to lowercase IDs
+              const typeMap: Record<string, string> = {
+                'ROBOWARS': 'robowars',
+                'ROBORACE': 'roborace',
+                'ROBOSOCCER': 'robosoccer'
+              }
+              return typeMap[comp.competition_type] || comp.competition_type.toLowerCase()
+            })
+            
+            // If user is registered for all 3 competitions, show message then redirect
+            if (registeredCompTypes.length >= 3) {
+              setIsFullyRegistered(true)
+              setLoading(false)
+              // Redirect after showing message
+              setTimeout(() => {
+                router.push('/dashboard')
+              }, 2500)
+              return
+            }
+            
+            setAlreadyRegisteredCompetitions(registeredCompTypes)
+          }
           
           // Pre-fill team name from existing team
           if (data.teamName) {
@@ -343,6 +376,11 @@ export default function TeamRegistration() {
   }
 
   const handleCompetitionToggle = (competitionId: string) => {
+    // Prevent toggling already registered competitions
+    if (alreadyRegisteredCompetitions.includes(competitionId)) {
+      return
+    }
+    
     setFormData(prev => {
       const isSelected = prev.selectedCompetitions.includes(competitionId)
       const updated = isSelected
@@ -408,6 +446,13 @@ export default function TeamRegistration() {
   }
 
   const handleSubmit = async (paymentMethod: 'now' | 'later', gateway?: 'razorpay' | 'phonepe') => {
+    // Prevent duplicate submissions using ref (handles race conditions)
+    if (isSubmittingRef.current || submitting) {
+      console.log('⚠️ Submission already in progress, ignoring duplicate request')
+      return
+    }
+    
+    isSubmittingRef.current = true
     setSubmitting(true)
     setError('')
 
@@ -566,6 +611,7 @@ export default function TeamRegistration() {
           modal: {
             ondismiss: function() {
               setSubmitting(false)
+              isSubmittingRef.current = false
               setError('Payment cancelled. Your registration has been saved as draft.')
             }
           }
@@ -578,6 +624,7 @@ export default function TeamRegistration() {
       setError(err.message || 'Registration failed. Please try again.')
     } finally {
       setSubmitting(false)
+      isSubmittingRef.current = false
     }
   }
 
@@ -585,63 +632,172 @@ export default function TeamRegistration() {
     return <LoadingState message="Loading registration form..." />
   }
 
+  // Show message when user is registered for all competitions
+  if (isFullyRegistered) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4 relative overflow-hidden">
+        {/* Diagonal Orange Beam Pattern */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-gradient-to-br from-orange-100/40 via-amber-50/30 to-transparent rotate-12 blur-3xl"></div>
+          <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-amber-100/30 via-orange-50/20 to-transparent -rotate-12 blur-3xl"></div>
+        </div>
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-white rounded-3xl shadow-2xl shadow-orange-200/50 p-8 text-center relative z-10 border border-orange-100"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-green-200/50"
+          >
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </motion.div>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            You&apos;re All Set! 🎉
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You have successfully registered for all three competitions. Head to your dashboard to manage your registrations.
+          </p>
+          
+          <div className="flex flex-wrap justify-center gap-2 mb-6">
+            {['RoboWars', 'RoboRace', 'RoboSoccer'].map((comp) => (
+              <span
+                key={comp}
+                className="px-3 py-1.5 bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 text-sm font-medium rounded-full border border-green-200"
+              >
+                ✓ {comp}
+              </span>
+            ))}
+          </div>
+          
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Redirecting to dashboard...</span>
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto mt-20">
+    <div className="min-h-screen bg-white py-8 px-4 relative overflow-hidden">
+      {/* Diagonal Orange Beam Pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-gradient-to-br from-orange-100/40 via-amber-50/30 to-transparent rotate-12 blur-3xl"></div>
+        <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-amber-100/30 via-orange-50/20 to-transparent -rotate-12 blur-3xl"></div>
+        <div className="absolute top-1/3 left-1/2 w-[400px] h-[100px] bg-gradient-to-r from-orange-200/20 to-amber-200/20 rotate-45 blur-2xl"></div>
+      </div>
+      
+      <div className="max-w-4xl mx-auto mt-20 relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Team Registration</h1>
-          <p className="text-gray-600">Complete your registration for Robomania 2025</p>
-          <p className="text-sm text-gray-500 mt-2">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-block mb-4"
+          >
+            <span className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold rounded-full shadow-lg shadow-orange-200/50">
+              ROBOMANIA 2025
+            </span>
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl font-bold text-gray-900 mb-2"
+          >
+            Team Registration
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-gray-600"
+          >
+            Complete your registration for the ultimate robotics competition
+          </motion.p>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm text-gray-500 mt-2"
+          >
             Tip: Use arrow keys (← →) to navigate between steps
-          </p>
+          </motion.p>
           {autoSaving && (
-            <div className="flex items-center justify-center gap-2 mt-2 text-sm text-green-600">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center gap-2 mt-2 text-sm text-green-600"
+            >
               <Save className="w-4 h-4" />
               <span>Draft saved automatically</span>
-            </div>
+            </motion.div>
           )}
         </div>
 
         {/* Draft Prompt */}
         {showDraftPrompt && (
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-2xl p-4 mb-6"
+          >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-semibold text-blue-900 mb-1">Resume Previous Registration?</h3>
-                <p className="text-sm text-blue-700">We found a saved draft of your registration.</p>
+                <h3 className="font-semibold text-orange-900 mb-1">Resume Previous Registration?</h3>
+                <p className="text-sm text-orange-700">We found a saved draft of your registration.</p>
               </div>
               <div className="flex gap-2">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={loadDraft}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 text-sm font-semibold shadow-lg shadow-orange-200/50"
                 >
                   Load Draft
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={discardDraft}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium"
                 >
                   Start Fresh
-                </button>
+                </motion.button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 mb-6 flex items-start gap-3"
+          >
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold text-red-900 mb-1">Error</h3>
               <p className="text-sm text-red-700">{error}</p>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-6 md:p-8 border border-gray-100"
+        >
           <ModernStepIndicator 
             currentStep={currentStep} 
             steps={STEP_DATA}
@@ -654,15 +810,20 @@ export default function TeamRegistration() {
               {currentStep === 1 && (
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {COMPETITIONS.map((competition) => (
-                      <CompetitionCard
-                        key={competition.id}
-                        competition={competition}
-                        isSelected={formData.selectedCompetitions.includes(competition.id)}
-                        onToggle={() => handleCompetitionToggle(competition.id)}
-                        onPreview={() => setPreviewCompetition(competition.slug)}
-                      />
-                    ))}
+                    {COMPETITIONS.map((competition) => {
+                      const isAlreadyRegistered = alreadyRegisteredCompetitions.includes(competition.id)
+                      return (
+                        <CompetitionCard
+                          key={competition.id}
+                          competition={competition}
+                          isSelected={formData.selectedCompetitions.includes(competition.id)}
+                          onToggle={() => handleCompetitionToggle(competition.id)}
+                          onPreview={() => setPreviewCompetition(competition.slug)}
+                          disabled={isAlreadyRegistered}
+                          disabledReason="Already Registered"
+                        />
+                      )
+                    })}
                   </div>
                   {getFieldError('competitions') && (
                     <div className="flex items-center gap-2 text-red-600 text-sm">
@@ -671,14 +832,18 @@ export default function TeamRegistration() {
                     </div>
                   )}
                   {formData.selectedCompetitions.length > 0 && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200"
+                    >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-gray-700">Total Amount:</span>
-                        <span className="text-2xl font-bold text-blue-600">
+                        <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
                           ₹{calculateTotal(formData.selectedCompetitions)}
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
               )}
@@ -740,12 +905,18 @@ export default function TeamRegistration() {
 
           {/* Navigation Buttons - Hidden on Step 4 (Payment has own buttons) */}
           {currentStep < 4 && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-8 pt-6 border-t gap-3">
-              <button
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-8 pt-6 border-t border-gray-200 gap-3"
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handlePrevStep}
                 disabled={currentStep === 1 || submitting}
                 className="
-                  flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium
+                  flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium
                   bg-gray-100 text-gray-700 hover:bg-gray-200
                   disabled:opacity-50 disabled:cursor-not-allowed
                   transition-all duration-200 min-h-[44px]
@@ -753,30 +924,35 @@ export default function TeamRegistration() {
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02, boxShadow: "0 10px 30px -10px rgba(249, 115, 22, 0.4)" }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleNextStep}
                 className="
-                  flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium
-                  bg-blue-600 text-white hover:bg-blue-700
-                  transition-all duration-200 shadow-lg hover:shadow-xl min-h-[44px]
+                  flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold
+                  bg-gradient-to-r from-orange-500 to-amber-500 text-white
+                  hover:from-orange-600 hover:to-amber-600
+                  transition-all duration-200 shadow-lg min-h-[44px]
                 "
               >
                 Next
                 <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           )}
 
           {/* Back button for payment step */}
           {currentStep === 4 && (
             <div className="mt-6">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handlePrevStep}
                 disabled={submitting}
                 className="
-                  flex items-center gap-2 px-6 py-3 rounded-lg font-medium
+                  flex items-center gap-2 px-6 py-3 rounded-xl font-medium
                   bg-gray-100 text-gray-700 hover:bg-gray-200
                   disabled:opacity-50 disabled:cursor-not-allowed
                   transition-all duration-200
@@ -784,10 +960,10 @@ export default function TeamRegistration() {
               >
                 <ChevronLeft className="w-5 h-5" />
                 Back to Review
-              </button>
+              </motion.button>
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Competition Preview Modal */}
         {previewCompetition && (

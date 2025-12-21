@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
-import { AlertCircle, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { AlertCircle, Info, Bot, Scale, Ruler, Swords } from 'lucide-react';
 import { getCompetitionDisplayName, validateWeight, weaponTypes } from '@/lib/validation';
 import { Tooltip } from '@/components/Tooltip';
 
@@ -82,21 +85,36 @@ export function RobotForm({
   };
 
   return (
-    <div className="space-y-6">
-      {competitions.map((competition) => {
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
+    >
+      {competitions.map((competition, index) => {
         const details = robotDetails[competition] || { robotName: '', weight: '', dimensions: '', weaponType: '' };
         const specs = competitionSpecs[competition];
 
         return (
-          <div key={competition} className="p-6 border-2 border-gray-200 rounded-xl bg-white">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  {getCompetitionDisplayName(competition)}
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">{specs.description}</p>
+          <motion.div 
+            key={competition}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="p-6 border-2 border-gray-200 rounded-2xl bg-white hover:border-orange-200 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-200/50">
+                  <Bot className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {getCompetitionDisplayName(competition)}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">{specs.description}</p>
+                </div>
               </div>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+              <span className="px-3 py-1.5 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 rounded-full text-xs font-bold">
                 Max {specs.maxWeight}kg
               </span>
             </div>
@@ -104,27 +122,31 @@ export function RobotForm({
             <div className="grid md:grid-cols-2 gap-4">
               {/* Robot Name */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Robot Name <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Robot Name <span className="text-orange-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={details.robotName}
-                  onChange={(e) => handleChange(competition, 'robotName', e.target.value)}
-                  placeholder="Enter robot name"
-                  className={`
-                    w-full px-4 py-3 rounded-lg border-2 transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
-                    ${getFieldError?.(`${competition}_robotName`) ? 'border-red-500' : 'border-gray-300'}
-                  `}
-                />
+                <div className="relative">
+                  <Bot className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={details.robotName}
+                    onChange={(e) => handleChange(competition, 'robotName', e.target.value)}
+                    placeholder="Enter robot name"
+                    className={`
+                      w-full pl-11 pr-4 py-3 rounded-xl border-2 transition-all duration-200
+                      focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
+                      ${getFieldError?.(`${competition}_robotName`) ? 'border-red-500' : 'border-gray-200'}
+                    `}
+                  />
+                </div>
                 {renderError(`${competition}_robotName`)}
               </div>
 
               {/* Weight */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  Weight (kg) <span className="text-red-500">*</span>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <Scale className="w-4 h-4 text-orange-500" />
+                  Weight (kg) <span className="text-orange-500">*</span>
                   <Tooltip content={`Enter the weight of your robot in kilograms. Maximum allowed: ${specs.maxWeight}kg`} />
                 </label>
                 <input
@@ -136,9 +158,9 @@ export function RobotForm({
                   onChange={(e) => handleChange(competition, 'weight', e.target.value)}
                   placeholder={`Max ${specs.maxWeight}kg`}
                   className={`
-                    w-full px-4 py-3 rounded-lg border-2 transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
-                    ${getFieldError?.(`${competition}_weight`) ? 'border-red-500' : 'border-gray-300'}
+                    w-full px-4 py-3 rounded-xl border-2 transition-all duration-200
+                    focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
+                    ${getFieldError?.(`${competition}_weight`) ? 'border-red-500' : 'border-gray-200'}
                   `}
                 />
                 {renderError(`${competition}_weight`)}
@@ -147,8 +169,9 @@ export function RobotForm({
 
               {/* Dimensions */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  Dimensions (LxWxH cm) <span className="text-red-500">*</span>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <Ruler className="w-4 h-4 text-orange-500" />
+                  Dimensions (LxWxH cm) <span className="text-orange-500">*</span>
                   <Tooltip content="Enter your robot dimensions in the format: Length x Width x Height (in centimeters). Example: 60x60x60" />
                 </label>
                 <input
@@ -157,9 +180,9 @@ export function RobotForm({
                   onChange={(e) => handleChange(competition, 'dimensions', e.target.value)}
                   placeholder="e.g., 30x30x30"
                   className={`
-                    w-full px-4 py-3 rounded-lg border-2 transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
-                    ${getFieldError?.(`${competition}_dimensions`) ? 'border-red-500' : 'border-gray-300'}
+                    w-full px-4 py-3 rounded-xl border-2 transition-all duration-200
+                    focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
+                    ${getFieldError?.(`${competition}_dimensions`) ? 'border-red-500' : 'border-gray-200'}
                   `}
                 />
                 {renderError(`${competition}_dimensions`)}
@@ -168,17 +191,18 @@ export function RobotForm({
               {/* Weapon Type (RoboWars only) */}
               {competition === 'robowars' && (
                 <div className="md:col-span-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                    Weapon Type <span className="text-red-500">*</span>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                    <Swords className="w-4 h-4 text-orange-500" />
+                    Weapon Type <span className="text-orange-500">*</span>
                     <Tooltip content="Select the primary weapon type for your combat robot. This will determine arena placement and match-making." />
                   </label>
                   <select
                     value={details.weaponType || ''}
                     onChange={(e) => handleChange(competition, 'weaponType', e.target.value)}
                     className={`
-                      w-full px-4 py-3 rounded-lg border-2 transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
-                      ${getFieldError?.(`${competition}_weaponType`) ? 'border-red-500' : 'border-gray-300'}
+                      w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 bg-white
+                      focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
+                      ${getFieldError?.(`${competition}_weaponType`) ? 'border-red-500' : 'border-gray-200'}
                     `}
                   >
                     <option value="">Select weapon type</option>
@@ -192,9 +216,9 @@ export function RobotForm({
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

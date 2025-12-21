@@ -27,11 +27,41 @@ export async function GET() {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'APPROVED')
 
-    // Get completed payments
+    // Get completed payments from competition_registrations
     const { count: completedPayments } = await supabaseAdmin
-      .from('teams')
+      .from('competition_registrations')
       .select('*', { count: 'exact', head: true })
       .eq('payment_status', 'COMPLETED')
+
+    // Get pending payments from competition_registrations
+    const { count: pendingPayments } = await supabaseAdmin
+      .from('competition_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('payment_status', 'PENDING')
+
+    // Get competition-specific registrations
+    const { count: robowarsCount } = await supabaseAdmin
+      .from('competition_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('competition_type', 'ROBOWARS')
+
+    const { count: roboraceCount } = await supabaseAdmin
+      .from('competition_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('competition_type', 'ROBORACE')
+
+    const { count: robosoccerCount } = await supabaseAdmin
+      .from('competition_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('competition_type', 'ROBOSOCCER')
+
+    // Calculate total revenue from completed payments
+    const { data: revenueData } = await supabaseAdmin
+      .from('competition_registrations')
+      .select('amount')
+      .eq('payment_status', 'COMPLETED')
+
+    const totalRevenue = revenueData?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0
 
     // Get total contacts
     const { count: totalContacts } = await supabaseAdmin
@@ -46,13 +76,18 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      stats: {
-        totalTeams: totalTeams || 0,
-        pendingTeams: pendingTeams || 0,
-        approvedTeams: approvedTeams || 0,
-        completedPayments: completedPayments || 0,
-        totalContacts: totalContacts || 0,
-        newsletterSubscribers: newsletterSubscribers || 0
+      totalTeams: totalTeams || 0,
+      pendingTeams: pendingTeams || 0,
+      approvedTeams: approvedTeams || 0,
+      completedPayments: completedPayments || 0,
+      pendingPayments: pendingPayments || 0,
+      totalRevenue,
+      totalContacts: totalContacts || 0,
+      newsletterSubscribers: newsletterSubscribers || 0,
+      competitions: {
+        robowars: robowarsCount || 0,
+        roborace: roboraceCount || 0,
+        robosoccer: robosoccerCount || 0
       }
     })
   } catch (error) {

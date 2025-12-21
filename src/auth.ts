@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { supabaseAdmin } from '@/lib/supabase'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export const {
   handlers: { GET, POST },
@@ -56,6 +57,13 @@ export const {
 
           // Store the generated id back to user object for session
           user.id = newProfile.id
+          
+          // Send welcome email to new user (async, don't await to not block signin)
+          sendWelcomeEmail({
+            name: user.name || 'Champion',
+            email: user.email
+          }).catch(err => console.error('Failed to send welcome email:', err))
+          
         } else {
           // Update existing profile
           const { error: updateError } = await supabaseAdmin
@@ -95,7 +103,16 @@ export const {
           session.user.image = profile.image
         }
 
-        if (session.user.email === process.env.ADMIN_EMAIL || session.user.email === 'sahanisushil325@gmail.com') {
+        // Check if user is admin from environment variable (comma-separated list)
+        const adminEmails = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+          .split(',')
+          .map(email => email.trim().toLowerCase())
+          .filter(Boolean)
+        
+        // Also include hardcoded fallback admin
+        const allAdminEmails = [...adminEmails, 'sahanisushil325@gmail.com']
+        
+        if (session.user.email && allAdminEmails.includes(session.user.email.toLowerCase())) {
           session.user.isAdmin = true
         }
       }
